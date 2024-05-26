@@ -1,0 +1,11 @@
+spring:
+    application:
+      name: share
+
+server:
+  servlet:
+    context-path: /share
+
+rest:
+  cache:
+    enable: true
