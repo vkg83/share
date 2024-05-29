@@ -15,7 +15,9 @@ import java.net.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,6 +30,7 @@ public class NSEJsoupClient implements FundDataProvider {
     private static final String BASE_URL = "https://www.nseindia.com";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
     private static final String DATA_DUMP_PATH = "C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data";
+    public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private Map<String, String> cookies;
 
     @Value("${rest.cache.enable}")
@@ -86,6 +89,7 @@ public class NSEJsoupClient implements FundDataProvider {
 
         } catch (Exception e) {
             LOGGER.debug("Some issue occurred in call", e);
+            loadCookies();
             throw new RuntimeException("Not able to fetch data!!", e);
         }
     }
@@ -122,11 +126,27 @@ public class NSEJsoupClient implements FundDataProvider {
         return funds;
     }
 
-    @Override
     public List<FundHistory> getHistory(Fund fund) {
-        Map<String, String> params = Collections.singletonMap("symbol", fund.getSymbol());
+        Map<String, String> params = new HashMap<>();
+        params.put("symbol", fund.getSymbol());
+        final LocalDate yesterday = LocalDate.now().minusDays(1);
+        params.put("from", yesterday.minusYears(1).format(FORMATTER));
+        params.put("to", yesterday.format(FORMATTER));
         final AllFundHistory allFundHistory = callApi("/api/historical/cm/equity", Connection.Method.GET, params, AllFundHistory.class);
         return allFundHistory.getData();
+    }
+
+    @Override
+    public List<FundHistory> getHistory(Fund fund, int days) {
+        final List<FundHistory> history = getHistory(fund);
+        return history.subList(0, Math.min(days, history.size()));
+    }
+
+    @Override
+    public List<FundHistory> getHistory(Fund fund, LocalDate start, LocalDate end) {
+        return getHistory(fund).stream()
+                .filter(h->!h.getDate().isBefore(start) && !h.getDate().isAfter(end))
+                .collect(Collectors.toList());
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

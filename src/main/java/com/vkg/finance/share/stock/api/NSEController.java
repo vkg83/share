@@ -23,4 +23,8 @@ public class NSEController {
     public List<Fund> loadJwelleryInfo() {
         return nseService.loadJwelInfo();
     }
+    @GetMapping("darvos")
+    public List<Fund> applyDarvos() {
+        return nseService.applyDarvos();
+    }
 }

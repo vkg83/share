@@ -4,15 +4,14 @@ package com.vkg.finance.share.stock;
 import com.vkg.finance.share.stock.client.FundDataProvider;
 import com.vkg.finance.share.stock.model.Fund;
 import com.vkg.finance.share.stock.model.FundType;
-import com.vkg.finance.share.stock.strategies.MovingAverageStrategy;
-import com.vkg.finance.share.stock.strategies.SelectionStrategy;
-import com.vkg.finance.share.stock.strategies.SimpleFundSelector;
+import com.vkg.finance.share.stock.strategies.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class NSEService {
@@ -40,5 +39,14 @@ public class NSEService {
         SelectionStrategy strategy = new MovingAverageStrategy(dataProvider);
         s.setNext(strategy);
         return s.select(allFunds);
+    }
+
+    public List<Fund> applyDarvos() {
+        LOGGER.info("Analyzed Gold and Silver");
+        final List<Fund> allFunds = loadEtfInfo();
+        DarvosTradingStrategy strategy = new DarvosTradingStrategy(dataProvider);
+        RedGreenStrategy s = new RedGreenStrategy(dataProvider);
+        strategy.setNext(s);
+        return allFunds.stream().filter(strategy::buy).collect(Collectors.toList());
     }
 }

@@ -47,11 +47,11 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
         List<FundWithHistory> fundAnalyses = new ArrayList<>();
         for (int i = 0; i < funds.size(); i++) {
             final Fund fund = funds.get(i);
-            List<FundHistory> fundHistory = dataProvider.getHistory(fund);
+            List<FundHistory> fundHistory = dataProvider.getHistory(fund, 20);
             FundWithHistory analysis = new FundWithHistory(fund, fundHistory);
             fundAnalyses.add(analysis);
 
-            LOGGER.info(String.format("| %3d | Got History of: %-15s | %8.2f %% | %8.2f |", i + 1, fund.getSymbol(), analysis.getVolumeChangePercent(), fund.getLastTradingPrice()));
+            LOGGER.info(String.format("| %3d | Got History of: %-15s | %8.2f %% | %8d |", i + 1, fund.getSymbol(), analysis.getVolumeChangePercent(), fund.getVolume()));
         }
         LOGGER.info("+---------------------------------------------------------------+");
 
