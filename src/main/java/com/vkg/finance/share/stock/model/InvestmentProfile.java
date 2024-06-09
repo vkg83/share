@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -143,7 +143,8 @@ public class InvestmentProfile {
         totalProfit += profit;
         balance += previousAmount + profit;
         double percent = ((int)( (10000 * grossProfit) / (inv.getQuantity() * inv.getPrice())))/100.0;
-        LOGGER.info("\tSale {} - {} : {}%", inv.getStockSymbol(),((long)(profit * 100))/100.0, percent);
+
+        LOGGER.info("\tSale {} - {} : {}% - Period {}", inv.getStockSymbol(),((long)(profit * 100))/100.0, percent, Period.between(inv.getDate(), date));
     }
 
     private static double brokerage(double amount) {
@@ -160,6 +161,6 @@ public class InvestmentProfile {
 
     @Override
     public String toString() {
-        return String.format("Balance: %8.2f, totalProfit: %7.2f, steps: %d, remaining %d", balance, totalProfit, investments.size(), completedInvestments.size());
+        return String.format("Balance: %8.2f, totalProfit: %7.2f, steps: %d, remaining %d", balance, totalProfit, completedInvestments.size(), investments.size());
     }
 }

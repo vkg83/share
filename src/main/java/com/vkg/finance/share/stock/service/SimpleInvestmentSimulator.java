@@ -30,7 +30,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     @Override
     public void simulateEtfShop() {
         InvestmentProfile p = new InvestmentProfile("sim_etf");
-        p.setBalance(200000);
+        p.setBalance(400000);
 
         List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
 
@@ -42,6 +42,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(LocalDate.now())
                 .setMinVolume(5000).includeAssets("GOLD", "SILVER").select(allFundInfos);
+        List<FundInfo> stocks = load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
         LocalDate today = LocalDate.now();
@@ -55,10 +56,22 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
             boolean purchased1 = process(p, curDate, strategy.select(etfs));
             boolean purchased2 = process(p, curDate, strategy.select(jwel));
-            if(!(purchased1 || purchased2))
-                tryAverage(p, curDate);
+            boolean purchased3 = process(p, curDate, strategy.select(stocks));
+//            if(!(purchased1 || purchased2 || purchased3))
+//                tryAverage(p, curDate);
         }
         LOGGER.info("Final {}", p);
+    }
+
+    private static List<FundInfo> load(String... symbols) {
+        return Arrays.stream(symbols).map(SimpleInvestmentSimulator::toInfo).collect(Collectors.toList());
+    }
+
+    private static FundInfo toInfo(String symbol) {
+        FundInfo info = new FundInfo();
+        info.setSymbol(symbol);
+        info.setName(symbol);
+        return info;
     }
 
     private boolean process(InvestmentProfile p, LocalDate curDate, List<FundInfo> fundInfos) {
@@ -91,7 +104,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             double price = h.getClosingPrice();
 
 
-            if (i.getPrice() * 1.05 < price) {
+            if (i.getPrice() * 1.03 < price) {
                 double profit = (price - i.getPrice()) * i.getQuantity();
                 if (maxProfit < profit) {
                     maxProfit = profit;
