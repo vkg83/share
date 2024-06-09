@@ -6,6 +6,10 @@ server:
   servlet:
     context-path: /share
 
+data:
+  storage:
+    path: C:\Users\Vishnu Kant Gupta\Documents\nse_data
 rest:
   cache:
+    path: ${data.storage.path}\cache
     enable: true

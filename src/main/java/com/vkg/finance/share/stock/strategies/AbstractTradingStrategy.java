@@ -1,6 +1,6 @@
 package com.vkg.finance.share.stock.strategies;
 
-import com.vkg.finance.share.stock.model.Fund;
+import com.vkg.finance.share.stock.model.FundInfo;
 
 public abstract class AbstractTradingStrategy implements TradingStrategy {
     TradingStrategy next;
@@ -10,13 +10,13 @@ public abstract class AbstractTradingStrategy implements TradingStrategy {
     }
 
     @Override
-    public final boolean buy(Fund fund) {
-        var flag = this.execute(fund);
+    public final boolean buy(FundInfo fundInfo) {
+        var flag = this.execute(fundInfo);
         if(flag & next != null) {
-            flag = next.buy(fund);
+            flag = next.buy(fundInfo);
         }
         return flag;
     }
 
-    protected abstract boolean execute(Fund fund);
+    protected abstract boolean execute(FundInfo fundInfo);
 }

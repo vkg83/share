@@ -1,6 +1,6 @@
 package com.vkg.finance.share.stock.strategies;
 
-import com.vkg.finance.share.stock.model.Fund;
+import com.vkg.finance.share.stock.model.FundInfo;
 
 import java.util.List;
 
@@ -12,13 +12,13 @@ public abstract class AbstractSelectionStrategy implements SelectionStrategy {
     }
 
     @Override
-    public final List<Fund> select(List<Fund> funds) {
-        var filteredFunds = this.execute(funds);
+    public final List<FundInfo> select(List<FundInfo> fundInfos) {
+        var filteredFunds = this.execute(fundInfos);
         if(next != null) {
             filteredFunds = next.select(filteredFunds);
         }
         return filteredFunds;
     }
 
-    protected abstract List<Fund> execute(List<Fund> funds);
+    protected abstract List<FundInfo> execute(List<FundInfo> fundInfos);
 }

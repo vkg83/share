@@ -1,11 +1,10 @@
 package com.vkg.finance.share.stock.api;
 
-import com.vkg.finance.share.stock.NSEService;
-import com.vkg.finance.share.stock.model.Fund;
+import com.vkg.finance.share.stock.service.FundManagementServiceImpl;
+import com.vkg.finance.share.stock.model.FundInfo;
+import com.vkg.finance.share.stock.service.InvestmentSimulator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -13,18 +12,28 @@ import java.util.List;
 @RequestMapping("nse")
 public class NSEController {
     @Autowired
-    private NSEService nseService;
+    private FundManagementServiceImpl fundManagementService;
+    @Autowired
+    private InvestmentSimulator investmentSimulator;
 
     @GetMapping("etf")
-    public List<Fund> loadEtfInfo() {
-        return nseService.loadEtfInfo();
+    public List<FundInfo> loadEtfInfo() {
+        return fundManagementService.loadEtfInfo();
     }
     @GetMapping("jwel")
-    public List<Fund> loadJwelleryInfo() {
-        return nseService.loadJwelInfo();
+    public List<FundInfo> loadJwelleryInfo() {
+        return fundManagementService.loadJwelInfo();
     }
     @GetMapping("darvos")
-    public List<Fund> applyDarvos() {
-        return nseService.applyDarvos();
+    public List<FundInfo> applyDarvos() {
+        return fundManagementService.applyDarvos();
+    }
+    @GetMapping("simulate-etf")
+    public void simulateShop() {
+        investmentSimulator.simulateEtfShop();
+    }
+    @GetMapping("simulate-lifo")
+    public void simulateLifo() {
+        investmentSimulator.simulateLifoShop();
     }
 }

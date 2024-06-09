@@ -3,6 +3,7 @@ package com.vkg.finance.share.stock.client;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vkg.finance.share.stock.model.*;
+import com.vkg.finance.share.stock.util.FileUtil;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.slf4j.Logger;
@@ -12,14 +13,11 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.Proxy;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.temporal.IsoFields;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,12 +27,16 @@ public class NSEJsoupClient implements FundDataProvider {
 
     private static final String BASE_URL = "https://www.nseindia.com";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
-    private static final String DATA_DUMP_PATH = "C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data";
     public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
     private Map<String, String> cookies;
+    private final Map<String, String> memoCache = new HashMap<>();
 
     @Value("${rest.cache.enable}")
     private boolean enableCache;
+    @Value("${rest.cache.path}")
+    private Path cacheBasePath;
+
 
     private static <T> Function<String, T> createJsonMapper(Class<T> cls) {
         return str -> {
@@ -62,16 +64,21 @@ public class NSEJsoupClient implements FundDataProvider {
     }
 
     private <T> T callApi(String relativePath, Connection.Method method, Map<String, String> params, Class<T> cls) {
-        String response = loadFromFile(relativePath, method, params);
+        final String fileName = getFileName(relativePath, method, params);
+        String response = loadFromFile(fileName);
         if(response == null) {
-            LOGGER.debug("Calling API");
+            LOGGER.info("Calling API {}", fileName);
             response = callApiInternal(relativePath, method, params);
-            saveToFile(relativePath, method,params, response);
+            saveToFile(fileName, response);
         } else {
-            LOGGER.debug("Loaded from cached file");
+            LOGGER.debug("Loaded from cached {} file", fileName);
         }
 
         return createJsonMapper(cls).apply(response);
+    }
+
+    private String getFileName(String relativePath, Connection.Method method, Map<String, String> params) {
+        return (relativePath + method + params).replaceAll("\\W", "") + ".txt";
     }
 
     private String callApiInternal(String relativePath, Connection.Method method, Map<String, String> params) {
@@ -88,77 +95,110 @@ public class NSEJsoupClient implements FundDataProvider {
             return resp.body();
 
         } catch (Exception e) {
-            LOGGER.debug("Some issue occurred in call", e);
+            cookies = null;
             loadCookies();
             throw new RuntimeException("Not able to fetch data!!", e);
         }
     }
 
-    private String getKey(String relativePath, Connection.Method method, Map<String, String> params) {
-        return (relativePath + method + params).replaceAll("\\W", "") + ".txt";
-    }
-
-    private String loadFromFile(String relativePath, Connection.Method method, Map<String, String> params) {
+    private String loadFromFile(String fileName) {
         if(!enableCache) return null;
-        String key = getKey(relativePath, method, params);
-        try {
-            return new String(Files.readAllBytes(Paths.get(DATA_DUMP_PATH, LocalDate.now().toString(), key)));
-        } catch (IOException e) {
-            return null;
+
+        if(memoCache.containsKey(fileName)) {
+            return memoCache.get(fileName);
         }
+        String response = null;
+        try {
+            response = FileUtil.loadFromFile(getCachePathForToday().resolve(fileName));
+        } catch (IOException e) {
+            LOGGER.debug("Not able to load data from {}", fileName, e);
+        }
+
+        memoCache.put(fileName, response);
+        return response;
     }
 
-    private void saveToFile(String relativePath, Connection.Method method, Map<String, String> params, String response) {
-        String key = getKey(relativePath, method, params);
+    private void saveToFile(String fileName, String response) {
         try {
-            Files.createDirectories(Paths.get(DATA_DUMP_PATH, LocalDate.now().toString()));
-            Files.write(Paths.get(DATA_DUMP_PATH, LocalDate.now().toString(), key), response.getBytes());
+            FileUtil.saveToFile(getCachePathForToday().resolve(fileName), response);
         } catch (IOException e) {
             LOGGER.debug("Not able to save data", e);
         }
     }
 
+    private Path getCachePathForToday() {
+        return cacheBasePath.resolve(LocalDate.now().toString());
+    }
+
     @Override
-    public List<Fund> getAllFunds(FundType type) {
+    public List<FundInfo> getAllFunds(FundType type) {
         AllFund result = callApi("/api/etf", Connection.Method.GET, Collections.emptyMap(), AllFund.class);
-        final List<Fund> funds = result.getData();
-        funds.forEach(f -> f.setType(type));
-        return funds;
+        final List<FundInfo> fundInfos = result.getData();
+        fundInfos.forEach(f -> f.setType(type));
+        return fundInfos;
     }
 
-    public List<FundHistory> getHistory(Fund fund) {
+    private List<FundHistory> getHistory(String symbol) {
         Map<String, String> params = new HashMap<>();
-        params.put("symbol", fund.getSymbol());
-        final LocalDate yesterday = LocalDate.now().minusDays(1);
-        params.put("from", yesterday.minusYears(1).format(FORMATTER));
-        params.put("to", yesterday.format(FORMATTER));
-        final AllFundHistory allFundHistory = callApi("/api/historical/cm/equity", Connection.Method.GET, params, AllFundHistory.class);
-        return allFundHistory.getData();
+        params.put("symbol", symbol);
+
+        final LocalDate today = LocalDate.now();
+        LocalDate from = today.with(IsoFields.DAY_OF_QUARTER, 1);
+        LocalDate to = today;
+        List<FundHistory> historyList = new ArrayList<>();
+        for(int i = 0; i < 5; i++) {
+            params.put("from", from.format(FORMATTER));
+            params.put("to", to.format(FORMATTER));
+            final AllFundHistory allFundHistory = callApi("/api/historical/cm/equity", Connection.Method.GET, params, AllFundHistory.class);
+            historyList.addAll(allFundHistory.getData());
+            to = from.minusDays(1);
+            from = to.with(IsoFields.DAY_OF_QUARTER, 1);
+        }
+        return historyList;
     }
 
     @Override
-    public List<FundHistory> getHistory(Fund fund, int days) {
-        final List<FundHistory> history = getHistory(fund);
-        return history.subList(0, Math.min(days, history.size()));
+    public List<FundHistory> getHistory(String symbol, LocalDate date, int days) {
+        return getHistory(symbol).stream()
+                .filter(h -> !h.getDate().isAfter(date)).limit(days).collect(Collectors.toList());
     }
 
     @Override
-    public List<FundHistory> getHistory(Fund fund, LocalDate start, LocalDate end) {
-        return getHistory(fund).stream()
+    public List<FundHistory> getHistory(String symbol, LocalDate start, LocalDate end) {
+        return getHistory(symbol).stream()
                 .filter(h->!h.getDate().isBefore(start) && !h.getDate().isAfter(end))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<FundHistory> getHistory(String symbol, LocalDate date) {
+        if(LocalDate.now().equals(date)) {
+            AllFundHistory result = callApi("/api/etf", Connection.Method.GET, Collections.emptyMap(), AllFundHistory.class);
+            return result.getData().stream().filter(f->f.getSymbol().equals(symbol)).findAny();
+        }
+        return getHistory(symbol).stream()
+                .filter(h->h.getDate().equals(date)).findAny();
+    }
+
+    @Override
+    public void clearCache() {
+        try {
+            FileUtil.clean(cacheBasePath);
+        } catch (IOException e) {
+            throw new RuntimeException("Not able to cleanup cache", e);
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class AllFund {
 
-        private List<Fund> data;
+        private List<FundInfo> data;
 
-        public List<Fund> getData() {
+        public List<FundInfo> getData() {
             return data;
         }
 
-        public void setData(List<Fund> data) {
+        public void setData(List<FundInfo> data) {
             this.data = data;
         }
 

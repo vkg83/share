@@ -1,26 +1,24 @@
 package com.vkg.finance.share.stock.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Fund {
+public class FundInfo {
     private static final DateTimeFormatter FMT = new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern("dd-MMM-yy").toFormatter();
 
     private FundType type;
     private String symbol;
-    private String assets;
-    @JsonProperty("ltP")
-    private double lastTradingPrice;
-    @JsonProperty("qty")
-    private long volume;
-    @JsonProperty("xDt")
+    @JsonAlias("assets")
+    private String name;
+    private Double marketCap;
+    @JsonAlias("xDt")
     private LocalDate actionDate;
-    @JsonProperty("cAct")
+    @JsonAlias("cAct")
     private String corporateAction;
 
     public void setType(FundType type) {
@@ -39,28 +37,12 @@ public class Fund {
         this.symbol = symbol;
     }
 
-    public String getAssets() {
-        return assets;
+    public String getName() {
+        return name;
     }
 
-    public void setAssets(String assets) {
-        this.assets = assets;
-    }
-
-    public double getLastTradingPrice() {
-        return lastTradingPrice;
-    }
-
-    public void setLastTradingPrice(double lastTradingPrice) {
-        this.lastTradingPrice = lastTradingPrice;
-    }
-
-    public long getVolume() {
-        return volume;
-    }
-
-    public void setVolume(long volume) {
-        this.volume = volume;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public LocalDate getActionDate() {
@@ -79,4 +61,11 @@ public class Fund {
         this.corporateAction = corporateAction;
     }
 
+    public Double getMarketCap() {
+        return marketCap;
+    }
+
+    public void setMarketCap(Double marketCap) {
+        this.marketCap = marketCap;
+    }
 }

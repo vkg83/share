@@ -5,26 +5,28 @@ import java.util.Arrays;
 import java.util.List;
 
 public class FundWithHistory {
-    private final Fund fund;
+    private final FundInfo fundInfo;
     private final List<FundHistory> fundHistory;
 
-    public FundWithHistory(Fund fund, List<FundHistory> fundHistory) {
-        this.fund = fund;
+    public FundWithHistory(FundInfo fundInfo, List<FundHistory> fundHistory) {
+        this.fundInfo = fundInfo;
         this.fundHistory = fundHistory;
     }
 
     public double getPriceChangePercent() {
-        final double averagePrice = getAveragePrice(fund.getActionDate());
-        return (fund.getLastTradingPrice() - averagePrice) * 100.0 / averagePrice;
+        final double averagePrice = getAveragePrice(fundInfo.getActionDate());
+        final double price = fundHistory.get(0).getClosingPrice();
+        return (price - averagePrice) * 100.0 / averagePrice;
     }
 
     public double getVolumeChangePercent() {
         long meanVolume = getMeanVolume();
-        return (fund.getVolume() - meanVolume) * 100.0 / meanVolume;
+        final long volume = fundHistory.get(0).getVolume();
+        return (volume - meanVolume) * 100.0 / meanVolume;
     }
 
-    public Fund getFund() {
-        return fund;
+    public FundInfo getFund() {
+        return fundInfo;
     }
 
     public double getAveragePrice(LocalDate actDate) {
@@ -33,9 +35,10 @@ public class FundWithHistory {
         LocalDate date = LocalDate.now();
         for (FundHistory info : fundHistory) {
             if(date.equals(info.getDate())) continue;
+            double factor = 1;
             if(actDate != null && info.getDate().isBefore(actDate))
-                break;
-            sum += info.getLastTradedPrice();
+                factor = 10;
+            sum += info.getClosingPrice()/factor;
             count++;
         }
         return count == 0 ? 0 : sum/count;
