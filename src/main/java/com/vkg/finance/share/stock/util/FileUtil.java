@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.LocalDate;
 
 public class FileUtil {
 
@@ -55,9 +56,9 @@ public class FileUtil {
         });
     }
 
-    private static void rename(Path path) {
+    private static void rename(File path) {
 
-        final File[] files = path.toFile().listFiles((f, name) -> name.contains("from01042024to08062024.txt"));
+        final File[] files = path.listFiles((f, name) -> name.contains("from01042024to08062024.txt"));
         assert files != null;
         for (File file : files) {
             String newName = file.getName();
@@ -68,9 +69,27 @@ public class FileUtil {
         }
     }
 
+    private static void delete(File path, String postFix) {
+
+        final File[] files = path.listFiles((f, name) -> name.endsWith(postFix));
+        assert files != null;
+        for (File file : files) {
+            var f = file.delete();
+            if(f)
+                System.out.println("deleted file " + file);
+        }
+        if(new File(path, "apietfGET.txt").delete()) System.out.println("deleted apietfGET.txt");
+    }
+
     public static void main(String[] args) {
-        Path p = Paths.get("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\2024-06-09");
-        rename(p);
+        String date = "2024-06-13";
+        String toDate = "from01042024to13062024.txt";
+        File p = new File("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\"+date);
+        delete(p, toDate);
+        var flag = p.renameTo(new File(p.getParent(), LocalDate.now().toString()));
+        if(flag) {
+            System.out.println("Renamed folder " + date + " to " + LocalDate.now());
+        }
     }
 
 }

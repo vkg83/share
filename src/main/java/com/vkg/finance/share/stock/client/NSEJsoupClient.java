@@ -9,6 +9,8 @@ import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -22,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
+@EnableRetry
 public class NSEJsoupClient implements FundDataProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(NSEJsoupClient.class);
 
@@ -31,6 +34,7 @@ public class NSEJsoupClient implements FundDataProvider {
 
     private Map<String, String> cookies;
     private final Map<String, String> memoCache = new HashMap<>();
+    private final Map<String, List<FundHistory>> historyCache = new HashMap<>();
 
     @Value("${rest.cache.enable}")
     private boolean enableCache;
@@ -81,7 +85,8 @@ public class NSEJsoupClient implements FundDataProvider {
         return (relativePath + method + params).replaceAll("\\W", "") + ".txt";
     }
 
-    private String callApiInternal(String relativePath, Connection.Method method, Map<String, String> params) {
+    @Retryable(retryFor = RuntimeException.class)
+    public String callApiInternal(String relativePath, Connection.Method method, Map<String, String> params) {
         try {
             loadCookies();
             Connection.Response resp = Jsoup.connect(BASE_URL + relativePath)
@@ -96,7 +101,6 @@ public class NSEJsoupClient implements FundDataProvider {
 
         } catch (Exception e) {
             cookies = null;
-            loadCookies();
             throw new RuntimeException("Not able to fetch data!!", e);
         }
     }
@@ -110,11 +114,11 @@ public class NSEJsoupClient implements FundDataProvider {
         String response = null;
         try {
             response = FileUtil.loadFromFile(getCachePathForToday().resolve(fileName));
+            memoCache.put(fileName, response);
         } catch (IOException e) {
             LOGGER.debug("Not able to load data from {}", fileName, e);
         }
 
-        memoCache.put(fileName, response);
         return response;
     }
 
@@ -139,6 +143,7 @@ public class NSEJsoupClient implements FundDataProvider {
     }
 
     private List<FundHistory> getHistory(String symbol) {
+        if(historyCache.containsKey(symbol)) return historyCache.get(symbol);
         Map<String, String> params = new HashMap<>();
         params.put("symbol", symbol);
 
@@ -154,6 +159,7 @@ public class NSEJsoupClient implements FundDataProvider {
             to = from.minusDays(1);
             from = to.with(IsoFields.DAY_OF_QUARTER, 1);
         }
+        historyCache.put(symbol, historyList);
         return historyList;
     }
 
@@ -174,7 +180,7 @@ public class NSEJsoupClient implements FundDataProvider {
     public Optional<FundHistory> getHistory(String symbol, LocalDate date) {
         if(LocalDate.now().equals(date)) {
             AllFundHistory result = callApi("/api/etf", Connection.Method.GET, Collections.emptyMap(), AllFundHistory.class);
-            return result.getData().stream().filter(f->f.getSymbol().equals(symbol)).findAny();
+            return result.getData().stream().filter(f->f.getSymbol().equals(symbol)).peek(f-> f.setDate(date)).findAny();
         }
         return getHistory(symbol).stream()
                 .filter(h->h.getDate().equals(date)).findAny();

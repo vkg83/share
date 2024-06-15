@@ -4,6 +4,7 @@ import com.vkg.finance.share.stock.client.FundDataProvider;
 import com.vkg.finance.share.stock.client.NSEJsoupClient;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundType;
+import com.vkg.finance.share.stock.model.InvestmentProfile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,10 +39,21 @@ class SimpleInvestmentSimulatorTest {
                 .sorted(Comparator.comparing(FundInfo::getActionDate))
                 .forEach(f -> System.out.printf("%s: %s - %s%n", f.getSymbol(), f.getActionDate(), f.getCorporateAction()));
     }
+    @Test
+    void shouldDoLifo() {
+        InvestmentProfile p = new InvestmentProfile("sim_etf");
+        p.setBalance(400000);
+        unit.doLifoShop(p);
+    }
 
     @Test
     void shouldSimulate() {
         unit.simulateEtfShop();
+    }
+
+    @Test
+    void shouldSimulateLifo() {
+        unit.simulateLifoShop();
     }
 
 }

@@ -103,7 +103,11 @@ public class FundHistory {
     }
 
     public void setDate(String date) {
-        this.date = LocalDate.parse(date, FMT);
+        setDate(LocalDate.parse(date, FMT));
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
     }
 
     public long getVolume() {

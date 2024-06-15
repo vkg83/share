@@ -61,13 +61,11 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
 //        LOGGER.info("+---------------------------------------------------------------+");
 //        LOGGER.info("|                        Order by Volume                        |");
 //        LOGGER.info("+---------------------------------------------------------------+");
-        LocalDate toDate = currentDate;
-        LocalDate fromDate = toDate.minusDays(historyDays+1);
         List<FundWithHistory> fundAnalyses = new ArrayList<>();
         List<String> symbols = new ArrayList<>();
         for (final FundInfo fundInfo : fundInfos) {
-            List<FundHistory> fundHistory = dataProvider.getHistory(fundInfo.getSymbol(), toDate, historyDays + 1);
-            if (fundHistory.size() < 1) {
+            List<FundHistory> fundHistory = dataProvider.getHistory(fundInfo.getSymbol(), currentDate, historyDays + 1);
+            if (fundHistory.size() < historyDays + 1) {
                 symbols.add(fundInfo.getSymbol());
                 continue;
             }

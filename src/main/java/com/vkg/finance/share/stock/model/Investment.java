@@ -39,4 +39,8 @@ public class Investment {
     public void setDate(LocalDate date) {
         this.date = date;
     }
+
+    public double getAmount() {
+        return price * quantity;
+    }
 }
