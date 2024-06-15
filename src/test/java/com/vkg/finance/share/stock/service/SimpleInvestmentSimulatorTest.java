@@ -1,10 +1,8 @@
 package com.vkg.finance.share.stock.service;
 
-import com.vkg.finance.share.stock.client.FundDataProvider;
-import com.vkg.finance.share.stock.client.NSEJsoupClient;
 import com.vkg.finance.share.stock.model.FundInfo;
-import com.vkg.finance.share.stock.model.FundType;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
+import com.vkg.finance.share.stock.repository.FileBasedFundDetailDao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,18 +12,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.List;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {SimpleInvestmentSimulator.class, NSEJsoupClient.class})
+@SpringBootTest(classes = {SimpleInvestmentSimulator.class, FundManagementServiceImpl.class, FileBasedFundDetailDao.class})
 @EnableConfigurationProperties
 class SimpleInvestmentSimulatorTest {
     @Autowired
     SimpleInvestmentSimulator unit;
     @Autowired
-    FundDataProvider dataProvider;
+    private FundManagementService fundManagementService;
 
     @BeforeEach
     void setUp() {
@@ -33,12 +29,13 @@ class SimpleInvestmentSimulatorTest {
     }
 
     @Test
-    void shouldAct() {
-        final List<FundInfo> allFunds = dataProvider.getAllFunds(FundType.ETF);
-        allFunds.stream().filter(f-> !"-".equals(f.getCorporateAction())).filter(f-> f.getActionDate().isAfter(LocalDate.now().minusYears(1)))
-                .sorted(Comparator.comparing(FundInfo::getActionDate))
-                .forEach(f -> System.out.printf("%s: %s - %s%n", f.getSymbol(), f.getActionDate(), f.getCorporateAction()));
+    void shouldFindTopMarketCapStock() {
+        fundManagementService.getFundDetails().stream()
+                .filter(i -> i.getMarketCap()!=null)
+                .sorted(Comparator.comparing(FundInfo::getMarketCap).reversed()).limit(50)
+                .forEach(i -> System.out.println(i.getSymbol()));
     }
+
     @Test
     void shouldDoLifo() {
         InvestmentProfile p = new InvestmentProfile("sim_etf");

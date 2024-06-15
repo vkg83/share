@@ -35,6 +35,7 @@ public class NSEJsoupClient implements FundDataProvider {
     private Map<String, String> cookies;
     private final Map<String, String> memoCache = new HashMap<>();
     private final Map<String, List<FundHistory>> historyCache = new HashMap<>();
+    private final List<FundInfo> fundInfoCache = new ArrayList<>();
 
     @Value("${rest.cache.enable}")
     private boolean enableCache;
@@ -136,14 +137,19 @@ public class NSEJsoupClient implements FundDataProvider {
 
     @Override
     public List<FundInfo> getAllFunds(FundType type) {
-        AllFund result = callApi("/api/etf", Connection.Method.GET, Collections.emptyMap(), AllFund.class);
-        final List<FundInfo> fundInfos = result.getData();
-        fundInfos.forEach(f -> f.setType(type));
-        return fundInfos;
+        if(fundInfoCache.isEmpty()) {
+            AllFund result = callApi("/api/etf", Connection.Method.GET, Collections.emptyMap(), AllFund.class);
+            final List<FundInfo> fundInfos = result.getData();
+            fundInfos.forEach(f -> f.setType(type));
+            fundInfoCache.addAll(fundInfos);
+        }
+        return fundInfoCache;
     }
 
     private List<FundHistory> getHistory(String symbol) {
-        if(historyCache.containsKey(symbol)) return historyCache.get(symbol);
+        if(historyCache.containsKey(symbol))
+            return historyCache.get(symbol);
+
         Map<String, String> params = new HashMap<>();
         params.put("symbol", symbol);
 
@@ -159,8 +165,15 @@ public class NSEJsoupClient implements FundDataProvider {
             to = from.minusDays(1);
             from = to.with(IsoFields.DAY_OF_QUARTER, 1);
         }
+
+        findFundInfo(symbol).ifPresent(fundInfo -> historyList.forEach(h -> h.adjust(fundInfo)));
         historyCache.put(symbol, historyList);
+
         return historyList;
+    }
+
+    private Optional<FundInfo> findFundInfo(String symbol) {
+        return getAllFunds(FundType.ETF).stream().filter(f -> f.getSymbol().equals(symbol)).findAny();
     }
 
     @Override

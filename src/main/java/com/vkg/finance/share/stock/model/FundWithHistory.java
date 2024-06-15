@@ -1,6 +1,5 @@
 package com.vkg.finance.share.stock.model;
 
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,7 +13,7 @@ public class FundWithHistory {
     }
 
     public double getPriceChangePercent() {
-        final double averagePrice = getAveragePrice(fundInfo.getActionDate());
+        final double averagePrice = getAveragePrice();
         final double price = fundHistory.get(0).getClosingPrice();
         return (price - averagePrice) * 100.0 / averagePrice;
     }
@@ -25,20 +24,20 @@ public class FundWithHistory {
         return (volume - meanVolume) * 100.0 / meanVolume;
     }
 
+    public List<FundHistory> getFundHistory() {
+        return fundHistory;
+    }
+
     public FundInfo getFund() {
         return fundInfo;
     }
 
-    public double getAveragePrice(LocalDate actDate) {
+    public double getAveragePrice() {
         double sum = 0;
         int count = 0;
-        LocalDate date = LocalDate.now();
-        for (FundHistory info : fundHistory) {
-            if(date.equals(info.getDate())) continue;
-            double factor = 1;
-            if(actDate != null && info.getDate().isBefore(actDate))
-                factor = 10;
-            sum += info.getClosingPrice()/factor;
+        for (int i = 1; i < fundHistory.size(); i++) {
+            FundHistory info = fundHistory.get(i);
+            sum += info.getClosingPrice();
             count++;
         }
         return count == 0 ? 0 : sum/count;

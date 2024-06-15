@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FundHistory {
@@ -47,7 +48,7 @@ public class FundHistory {
     private double lastTradedPrice;
     @JsonAlias("CH_TIMESTAMP")
     private LocalDate date;
-    @JsonAlias({"CH_TOT_TRADED_QTY","qty"})
+    @JsonAlias({"CH_TOT_TRADED_QTY", "qty"})
     private long volume;
 
     public String getSymbol() {
@@ -118,8 +119,37 @@ public class FundHistory {
         this.volume = volume;
     }
 
+    public void adjust(FundInfo fundInfo) {
+        symbol = fundInfo.getSymbol();
+
+        if (fundInfo.getActionDate() != null && date.isBefore(fundInfo.getActionDate())) {
+            final double factor = getFactor(fundInfo.getCorporateAction());
+            openingPrice *= factor;
+            closingPrice *= factor;
+            highPrice *= factor;
+            lowPrice *= factor;
+            lastTradedPrice *= factor;
+        }
+    }
+
+    private double getFactor(String actionStr) {
+        var p = Pattern.compile("FACE VALUE SPLIT \\(SUB-DIVISION\\) - FROM R[SE] (\\d+.?\\d*)/- PER SHARE TO R[ES] (\\d+.?\\d*)/- PER SHARE");
+        var m = p.matcher(actionStr);
+        double factor;
+        if (m.matches()) {
+            double n = Double.parseDouble(m.group(2));
+            double d = Double.parseDouble(m.group(1));
+            factor = n / d;
+        } else {
+            throw new RuntimeException("Not able to sanitize history for " + symbol + " on " + date);
+        }
+
+        return factor;
+    }
+
+
     @Override
     public String toString() {
-        return date + ": " + closingPrice + " - " + volume ;
+        return date + ": " + closingPrice + " - " + volume;
     }
 }

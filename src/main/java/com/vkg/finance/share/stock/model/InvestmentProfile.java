@@ -161,9 +161,4 @@ public class InvestmentProfile {
         return investments.stream().filter(inv -> inv.getStockSymbol().equals(symbol))
                 .mapToInt(Investment::getQuantity).sum();
     }
-
-    public void updateSymbol(String symbol, String newSymbol) {
-        investments.stream().filter(inv -> inv.getStockSymbol().equals(symbol))
-                .forEach(i -> i.setStockSymbol(newSymbol));
-    }
 }
