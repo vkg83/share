@@ -8,6 +8,7 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.annotation.Retryable;
@@ -41,6 +42,8 @@ public class NSEJsoupClient implements FundDataProvider {
     private boolean enableCache;
     @Value("${rest.cache.path}")
     private Path cacheBasePath;
+    @Autowired
+    private NSEJsoupClient self;
 
 
     private static <T> Function<String, T> createJsonMapper(Class<T> cls) {
@@ -73,7 +76,7 @@ public class NSEJsoupClient implements FundDataProvider {
         String response = loadFromFile(fileName);
         if(response == null) {
             LOGGER.info("Calling API {}", fileName);
-            response = callApiInternal(relativePath, method, params);
+            response = self.callApiInternal(relativePath, method, params);
             saveToFile(fileName, response);
         } else {
             LOGGER.debug("Loaded from cached {} file", fileName);

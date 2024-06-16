@@ -82,8 +82,8 @@ public class FileUtil {
     }
 
     public static void main(String[] args) {
-        String date = "2024-06-13";
-        String toDate = "from01042024to13062024.txt";
+        String date = "2024-06-15";
+        String toDate = "from01042024to15062024.txt";
         File p = new File("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\"+date);
         delete(p, toDate);
         var flag = p.renameTo(new File(p.getParent(), LocalDate.now().toString()));

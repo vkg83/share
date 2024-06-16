@@ -40,7 +40,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
                 .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos);
-        List<FundInfo> stocks = load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "MARUTI", "LT", "SUNPHARMA", "HINDUNILVR");
+        List<FundInfo> stocks = load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
@@ -103,6 +103,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         }
 
         print(p);
+        LOGGER.info("New Daily Fund: {}", dailyFund);
 
         System.out.println(balStr);
     }

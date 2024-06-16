@@ -1,5 +1,6 @@
 package com.vkg.finance.share.stock.service;
 
+import com.vkg.finance.share.stock.client.NSEJsoupClient;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
 import com.vkg.finance.share.stock.repository.FileBasedFundDetailDao;
@@ -15,7 +16,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.Comparator;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {SimpleInvestmentSimulator.class, FundManagementServiceImpl.class, FileBasedFundDetailDao.class})
+@SpringBootTest(classes = {SimpleInvestmentSimulator.class, FundManagementServiceImpl.class, FileBasedFundDetailDao.class, NSEJsoupClient.class})
 @EnableConfigurationProperties
 class SimpleInvestmentSimulatorTest {
     @Autowired
