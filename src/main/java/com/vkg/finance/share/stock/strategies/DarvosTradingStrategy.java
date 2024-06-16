@@ -2,7 +2,7 @@ package com.vkg.finance.share.stock.strategies;
 
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundHistory;
-import com.vkg.finance.share.stock.repository.FundDataProvider;
+import com.vkg.finance.share.stock.repository.MarketDataProvider;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -13,9 +13,9 @@ import java.util.Optional;
 
 public class DarvosTradingStrategy extends AbstractTradingStrategy {
 
-    private final FundDataProvider dataProvider;
+    private final MarketDataProvider dataProvider;
 
-    public DarvosTradingStrategy(FundDataProvider dataProvider) {
+    public DarvosTradingStrategy(MarketDataProvider dataProvider) {
         this.dataProvider = dataProvider;
     }
 

@@ -3,7 +3,7 @@ package com.vkg.finance.share.stock.strategies;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundWithHistory;
 import com.vkg.finance.share.stock.model.FundHistory;
-import com.vkg.finance.share.stock.repository.FundDataProvider;
+import com.vkg.finance.share.stock.repository.MarketDataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,12 +16,12 @@ import java.util.stream.Collectors;
 public class MovingAverageStrategy extends AbstractSelectionStrategy {
     private static final Logger LOGGER = LoggerFactory.getLogger(MovingAverageStrategy.class);
 
-    private final FundDataProvider dataProvider;
+    private final MarketDataProvider dataProvider;
     private LocalDate currentDate;
     private int historyDays;
     private int maxResultCount;
 
-    public MovingAverageStrategy(FundDataProvider dataProvider) {
+    public MovingAverageStrategy(MarketDataProvider dataProvider) {
         this.dataProvider = dataProvider;
         this.currentDate = LocalDate.now();
         this.historyDays = 20;

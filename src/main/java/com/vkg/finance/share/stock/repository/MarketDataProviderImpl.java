@@ -7,7 +7,6 @@ import com.vkg.finance.share.stock.model.FundHistory;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundType;
 import com.vkg.finance.share.stock.util.FileUtil;
-import org.jsoup.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +23,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
-public class FundDataProviderImpl implements FundDataProvider {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FundDataProviderImpl.class);
+public class MarketDataProviderImpl implements MarketDataProvider {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MarketDataProviderImpl.class);
 
     public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
@@ -52,12 +51,12 @@ public class FundDataProviderImpl implements FundDataProvider {
         };
     }
 
-    private <T> T callApi(String relativePath, Connection.Method method, Map<String, String> params, Class<T> cls) {
-        final String fileName = getFileName(relativePath, method, params);
+    private <T> T callApi(String relativePath, Map<String, String> params, Class<T> cls) {
+        final String fileName = getFileName(relativePath, params);
         String response = loadFromFile(fileName);
         if(response == null) {
             LOGGER.info("Calling API {}", fileName);
-            response = nseClient.callApi(relativePath, method, params);
+            response = nseClient.get(relativePath, params);
             saveToFile(fileName, response);
         } else {
             LOGGER.debug("Loaded from cached {} file", fileName);
@@ -66,8 +65,8 @@ public class FundDataProviderImpl implements FundDataProvider {
         return createJsonMapper(cls).apply(response);
     }
 
-    private String getFileName(String relativePath, Connection.Method method, Map<String, String> params) {
-        return (relativePath + method + params).replaceAll("\\W", "") + ".txt";
+    private String getFileName(String relativePath, Map<String, String> params) {
+        return (relativePath + "GET" + params).replaceAll("\\W", "") + ".txt";
     }
 
     private String loadFromFile(String fileName) {
@@ -102,7 +101,7 @@ public class FundDataProviderImpl implements FundDataProvider {
     @Override
     public List<FundInfo> getAllFunds(FundType type) {
         if(fundInfoCache.isEmpty()) {
-            AllFund result = callApi("/api/etf", Connection.Method.GET, Collections.emptyMap(), AllFund.class);
+            AllFund result = callApi("/api/etf", Collections.emptyMap(), AllFund.class);
             final List<FundInfo> fundInfos = result.getData();
             fundInfos.forEach(f -> f.setType(type));
             fundInfoCache.addAll(fundInfos);
@@ -124,7 +123,7 @@ public class FundDataProviderImpl implements FundDataProvider {
         for(int i = 0; i < 5; i++) {
             params.put("from", from.format(FORMATTER));
             params.put("to", to.format(FORMATTER));
-            final AllFundHistory allFundHistory = callApi("/api/historical/cm/equity", Connection.Method.GET, params, AllFundHistory.class);
+            final AllFundHistory allFundHistory = callApi("/api/historical/cm/equity", params, AllFundHistory.class);
             historyList.addAll(allFundHistory.getData());
             to = from.minusDays(1);
             from = to.with(IsoFields.DAY_OF_QUARTER, 1);
@@ -156,7 +155,7 @@ public class FundDataProviderImpl implements FundDataProvider {
     @Override
     public Optional<FundHistory> getHistory(String symbol, LocalDate date) {
         if(LocalDate.now().equals(date)) {
-            AllFundHistory result = callApi("/api/etf", Connection.Method.GET, Collections.emptyMap(), AllFundHistory.class);
+            AllFundHistory result = callApi("/api/etf", Collections.emptyMap(), AllFundHistory.class);
             return result.getData().stream().filter(f->f.getSymbol().equals(symbol)).peek(f-> f.setDate(date)).findAny();
         }
         return getHistory(symbol).stream()
@@ -166,7 +165,7 @@ public class FundDataProviderImpl implements FundDataProvider {
     @Override
     public void clearCache() {
         try {
-            FileUtil.clean(cacheBasePath);
+            FileUtil.delete(cacheBasePath);
         } catch (IOException e) {
             throw new RuntimeException("Not able to cleanup cache", e);
         }

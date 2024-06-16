@@ -9,7 +9,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.net.Proxy;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @Component
@@ -24,6 +23,9 @@ public class NSEJSoupClient implements NSEClient {
 
     private void loadCookies() {
         if (cookies != null) return;
+
+        LOGGER.debug("Loading cookies");
+
         try {
             cookies = Jsoup.connect(BASE_URL)
                     .userAgent(USER_AGENT)
@@ -37,16 +39,16 @@ public class NSEJSoupClient implements NSEClient {
 
     @Override
     @Retryable(retryFor = RuntimeException.class)
-    public String callApi(String relativePath, Connection.Method method, Map<String, String> params) {
+    public String get(String relativePath, Map<String, String> data) {
         try {
             loadCookies();
             Connection.Response resp = Jsoup.connect(BASE_URL + relativePath)
-                    .data(params)
+                    .data(data)
                     .userAgent(USER_AGENT)
                     .proxy(Proxy.NO_PROXY)
                     .ignoreContentType(true)
                     .cookies(cookies)
-                    .method(method)
+                    .method(Connection.Method.GET)
                     .execute();
             return resp.body();
 

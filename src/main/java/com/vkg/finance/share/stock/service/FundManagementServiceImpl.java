@@ -3,7 +3,7 @@ package com.vkg.finance.share.stock.service;
 
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundType;
-import com.vkg.finance.share.stock.repository.FundDataProvider;
+import com.vkg.finance.share.stock.repository.MarketDataProvider;
 import com.vkg.finance.share.stock.repository.FundDetailDao;
 import com.vkg.finance.share.stock.strategies.*;
 import org.slf4j.Logger;
@@ -22,7 +22,7 @@ public class FundManagementServiceImpl implements FundManagementService {
 
     private static final int MIN_ALLOWED_VOLUME = 5000;
     @Autowired
-    private FundDataProvider dataProvider;
+    private MarketDataProvider dataProvider;
     @Autowired
     private FundDetailDao fundDetailDao;
 

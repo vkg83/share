@@ -2,7 +2,7 @@ package com.vkg.finance.share.stock.strategies;
 
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundHistory;
-import com.vkg.finance.share.stock.repository.FundDataProvider;
+import com.vkg.finance.share.stock.repository.MarketDataProvider;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -11,10 +11,10 @@ import java.util.Optional;
 
 public class RedGreenStrategy extends AbstractTradingStrategy {
 
-    private FundDataProvider dataProvider;
+    private MarketDataProvider dataProvider;
     private Frequency frequency = Frequency.WEEKLY;
 
-    public RedGreenStrategy(FundDataProvider dataProvider) {
+    public RedGreenStrategy(MarketDataProvider dataProvider) {
         this.dataProvider = dataProvider;
     }
 

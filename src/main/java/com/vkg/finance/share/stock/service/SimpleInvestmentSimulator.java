@@ -2,7 +2,7 @@ package com.vkg.finance.share.stock.service;
 
 import com.vkg.finance.share.stock.config.MarketConfig;
 import com.vkg.finance.share.stock.model.*;
-import com.vkg.finance.share.stock.repository.FundDataProvider;
+import com.vkg.finance.share.stock.repository.MarketDataProvider;
 import com.vkg.finance.share.stock.strategies.MovingAverageStrategy;
 import com.vkg.finance.share.stock.strategies.SimpleFundSelector;
 import org.slf4j.Logger;
@@ -24,7 +24,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     public static final int DAILY_FUND = 5000;
     public static final int MIN_VOLUME = 10000;
     @Autowired
-    private FundDataProvider dataProvider;
+    private MarketDataProvider dataProvider;
 
     @Autowired
     private MarketConfig marketConfig;

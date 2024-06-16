@@ -33,7 +33,7 @@ public class FileUtil {
         Files.writeString(path, content);
     }
 
-    public static void clean(Path path) throws IOException {
+    public static void delete(Path path) throws IOException {
         if(Files.notExists(path)) return;
 
         Files.walkFileTree(path, new SimpleFileVisitor<>() {
@@ -56,20 +56,7 @@ public class FileUtil {
         });
     }
 
-    private static void rename(File path) {
-
-        final File[] files = path.listFiles((f, name) -> name.contains("from01042024to08062024.txt"));
-        assert files != null;
-        for (File file : files) {
-            String newName = file.getName();
-            newName = newName.replace('8', '9');
-            var f = file.renameTo(new File(file.getParent(), newName));
-            if(f)
-                System.out.println("Renamed file " + file);
-        }
-    }
-
-    private static void delete(File path, String postFix) {
+    private static void clean(File path, String postFix) {
 
         final File[] files = path.listFiles((f, name) -> name.endsWith(postFix));
         assert files != null;
@@ -85,7 +72,7 @@ public class FileUtil {
         String date = "2024-06-15";
         String toDate = "from01042024to15062024.txt";
         File p = new File("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\"+date);
-        delete(p, toDate);
+        clean(p, toDate);
         var flag = p.renameTo(new File(p.getParent(), LocalDate.now().toString()));
         if(flag) {
             System.out.println("Renamed folder " + date + " to " + LocalDate.now());

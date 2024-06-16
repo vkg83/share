@@ -2,7 +2,7 @@ package com.vkg.finance.share.stock.strategies;
 
 import com.vkg.finance.share.stock.model.FundHistory;
 import com.vkg.finance.share.stock.model.FundInfo;
-import com.vkg.finance.share.stock.repository.FundDataProvider;
+import com.vkg.finance.share.stock.repository.MarketDataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,10 +16,10 @@ public class SimpleFundSelector extends AbstractSelectionStrategy {
 
     private int minVolume;
     private Predicate<FundInfo> p = e->true;
-    private final FundDataProvider dataProvider;
+    private final MarketDataProvider dataProvider;
     private LocalDate currentDate = LocalDate.now();
 
-    public SimpleFundSelector(FundDataProvider dataProvider) {
+    public SimpleFundSelector(MarketDataProvider dataProvider) {
         this.dataProvider = dataProvider;
     }
 
