@@ -1,9 +1,10 @@
 package com.vkg.finance.share.stock.service;
 
-import com.vkg.finance.share.stock.client.NSEJsoupClient;
+import com.vkg.finance.share.stock.client.NSEJSoupClient;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
 import com.vkg.finance.share.stock.repository.FileBasedFundDetailDao;
+import com.vkg.finance.share.stock.repository.FundDataProviderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +17,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.Comparator;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {SimpleInvestmentSimulator.class, FundManagementServiceImpl.class, FileBasedFundDetailDao.class, NSEJsoupClient.class})
+@SpringBootTest(classes = {SimpleInvestmentSimulator.class, FundManagementServiceImpl.class, FileBasedFundDetailDao.class, FundDataProviderImpl.class, NSEJSoupClient.class})
 @EnableConfigurationProperties
 class SimpleInvestmentSimulatorTest {
     @Autowired

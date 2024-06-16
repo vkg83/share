@@ -1,9 +1,9 @@
 package com.vkg.finance.share.stock.service;
 
 
-import com.vkg.finance.share.stock.client.FundDataProvider;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundType;
+import com.vkg.finance.share.stock.repository.FundDataProvider;
 import com.vkg.finance.share.stock.repository.FundDetailDao;
 import com.vkg.finance.share.stock.strategies.*;
 import org.slf4j.Logger;

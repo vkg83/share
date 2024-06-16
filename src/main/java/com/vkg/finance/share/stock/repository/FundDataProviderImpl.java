@@ -1,22 +1,21 @@
-package com.vkg.finance.share.stock.client;
+package com.vkg.finance.share.stock.repository;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vkg.finance.share.stock.model.*;
+import com.vkg.finance.share.stock.client.NSEClient;
+import com.vkg.finance.share.stock.model.FundHistory;
+import com.vkg.finance.share.stock.model.FundInfo;
+import com.vkg.finance.share.stock.model.FundType;
 import com.vkg.finance.share.stock.util.FileUtil;
 import org.jsoup.Connection;
-import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.Proxy;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.IsoFields;
@@ -25,15 +24,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
-@EnableRetry
-public class NSEJsoupClient implements FundDataProvider {
-    private static final Logger LOGGER = LoggerFactory.getLogger(NSEJsoupClient.class);
+public class FundDataProviderImpl implements FundDataProvider {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FundDataProviderImpl.class);
 
-    private static final String BASE_URL = "https://www.nseindia.com";
-    private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
     public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-    private Map<String, String> cookies;
     private final Map<String, String> memoCache = new HashMap<>();
     private final Map<String, List<FundHistory>> historyCache = new HashMap<>();
     private final List<FundInfo> fundInfoCache = new ArrayList<>();
@@ -43,8 +38,7 @@ public class NSEJsoupClient implements FundDataProvider {
     @Value("${rest.cache.path}")
     private Path cacheBasePath;
     @Autowired
-    private NSEJsoupClient self;
-
+    private NSEClient nseClient;
 
     private static <T> Function<String, T> createJsonMapper(Class<T> cls) {
         return str -> {
@@ -58,25 +52,12 @@ public class NSEJsoupClient implements FundDataProvider {
         };
     }
 
-    private void loadCookies() {
-        if (cookies != null) return;
-        try {
-            cookies = Jsoup.connect(BASE_URL)
-                    .userAgent(USER_AGENT)
-                    .proxy(Proxy.NO_PROXY)
-                    .method(Connection.Method.GET)
-                    .execute().cookies();
-        } catch (Exception e) {
-            throw new RuntimeException("Not able to fetch cookie!!", e);
-        }
-    }
-
     private <T> T callApi(String relativePath, Connection.Method method, Map<String, String> params, Class<T> cls) {
         final String fileName = getFileName(relativePath, method, params);
         String response = loadFromFile(fileName);
         if(response == null) {
             LOGGER.info("Calling API {}", fileName);
-            response = self.callApiInternal(relativePath, method, params);
+            response = nseClient.callApi(relativePath, method, params);
             saveToFile(fileName, response);
         } else {
             LOGGER.debug("Loaded from cached {} file", fileName);
@@ -87,26 +68,6 @@ public class NSEJsoupClient implements FundDataProvider {
 
     private String getFileName(String relativePath, Connection.Method method, Map<String, String> params) {
         return (relativePath + method + params).replaceAll("\\W", "") + ".txt";
-    }
-
-    @Retryable(retryFor = RuntimeException.class)
-    public String callApiInternal(String relativePath, Connection.Method method, Map<String, String> params) {
-        try {
-            loadCookies();
-            Connection.Response resp = Jsoup.connect(BASE_URL + relativePath)
-                    .data(params)
-                    .userAgent(USER_AGENT)
-                    .proxy(Proxy.NO_PROXY)
-                    .ignoreContentType(true)
-                    .cookies(cookies)
-                    .method(method)
-                    .execute();
-            return resp.body();
-
-        } catch (Exception e) {
-            cookies = null;
-            throw new RuntimeException("Not able to fetch data!!", e);
-        }
     }
 
     private String loadFromFile(String fileName) {
@@ -239,10 +200,5 @@ public class NSEJsoupClient implements FundDataProvider {
             this.data = data;
         }
 
-        @Override
-        public String toString() {
-            return data.stream()
-                    .map(FundHistory::toString).collect(Collectors.joining("\n"));
-        }
     }
 }

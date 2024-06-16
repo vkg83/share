@@ -1,7 +1,7 @@
-package com.vkg.finance.share.stock.client;
+package com.vkg.finance.share.stock.repository;
 
-import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundHistory;
+import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundType;
 
 import java.time.LocalDate;

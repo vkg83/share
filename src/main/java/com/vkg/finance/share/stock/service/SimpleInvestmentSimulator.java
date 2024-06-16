@@ -1,8 +1,8 @@
 package com.vkg.finance.share.stock.service;
 
-import com.vkg.finance.share.stock.client.FundDataProvider;
 import com.vkg.finance.share.stock.config.MarketConfig;
 import com.vkg.finance.share.stock.model.*;
+import com.vkg.finance.share.stock.repository.FundDataProvider;
 import com.vkg.finance.share.stock.strategies.MovingAverageStrategy;
 import com.vkg.finance.share.stock.strategies.SimpleFundSelector;
 import org.slf4j.Logger;

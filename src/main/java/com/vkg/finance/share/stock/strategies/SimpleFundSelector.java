@@ -1,8 +1,8 @@
 package com.vkg.finance.share.stock.strategies;
 
-import com.vkg.finance.share.stock.client.FundDataProvider;
 import com.vkg.finance.share.stock.model.FundHistory;
 import com.vkg.finance.share.stock.model.FundInfo;
+import com.vkg.finance.share.stock.repository.FundDataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
