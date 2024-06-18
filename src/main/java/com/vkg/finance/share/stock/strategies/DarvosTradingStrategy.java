@@ -14,28 +14,33 @@ import java.util.Optional;
 public class DarvosTradingStrategy extends AbstractTradingStrategy {
 
     private final MarketDataProvider dataProvider;
+    private LocalDate currentDate;
 
     public DarvosTradingStrategy(MarketDataProvider dataProvider) {
         this.dataProvider = dataProvider;
+        this.currentDate = LocalDate.now();
+    }
+
+    public void setCurrentDate(LocalDate currentDate) {
+        this.currentDate = currentDate;
     }
 
     @Override
-    protected boolean execute(FundInfo fundInfo) {
-        final LocalDate now = LocalDate.now();
-        LocalDate boxEnd = now.with(TemporalAdjusters.previous(DayOfWeek.THURSDAY));
+    protected FundHistory execute(FundInfo fundInfo) {
+        LocalDate boxEnd = currentDate.with(TemporalAdjusters.previous(DayOfWeek.THURSDAY));
         LocalDate boxStart = boxEnd.with(TemporalAdjusters.previous(DayOfWeek.FRIDAY));
         var history = dataProvider.getHistory(fundInfo.getSymbol(), boxStart, boxEnd);
-        final Optional<FundHistory> h = dataProvider.getHistory(fundInfo.getSymbol(), now);
-        if(h.isEmpty()) return false;
+        final Optional<FundHistory> h = dataProvider.getHistory(fundInfo.getSymbol(), currentDate);
+        if(h.isEmpty()) return null;
         var price = h.get().getClosingPrice();
         double high = findHigh(history);
-        return price >= high;
+        return price >= high ? h.get() : null;
     }
 
     private double findHigh(List<FundHistory> history) {
         final FundHistory other = new FundHistory();
-        other.setClosingPrice(Double.MAX_VALUE);
-        return history.stream().max(Comparator.comparing(FundHistory::getClosingPrice))
-                .orElse(other).getClosingPrice();
+        other.setHighPrice(Double.MAX_VALUE);
+        return history.stream().max(Comparator.comparing(FundHistory::getHighPrice))
+                .orElse(other).getHighPrice();
     }
 }

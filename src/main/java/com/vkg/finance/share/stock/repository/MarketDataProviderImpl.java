@@ -3,6 +3,7 @@ package com.vkg.finance.share.stock.repository;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vkg.finance.share.stock.client.NSEClient;
+import com.vkg.finance.share.stock.config.MarketConfig;
 import com.vkg.finance.share.stock.model.FundHistory;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.FundType;
@@ -38,6 +39,8 @@ public class MarketDataProviderImpl implements MarketDataProvider {
     private Path cacheBasePath;
     @Autowired
     private NSEClient nseClient;
+    @Autowired
+    private MarketConfig marketConfig;
 
     private static <T> Function<String, T> createJsonMapper(Class<T> cls) {
         return str -> {
@@ -129,10 +132,32 @@ public class MarketDataProviderImpl implements MarketDataProvider {
             from = to.with(IsoFields.DAY_OF_QUARTER, 1);
         }
 
+        if(marketConfig.isMarketOpen(today)) {
+            FundHistory cur = getCurrentHistory(symbol, today);
+            historyList.add(0, cur);
+        }
+
         findFundInfo(symbol).ifPresent(fundInfo -> historyList.forEach(h -> h.adjust(fundInfo)));
         historyCache.put(symbol, historyList);
 
         return historyList;
+    }
+
+    private FundHistory getCurrentHistory(String symbol, LocalDate date) {
+        AllFundHistory result = callApi("/api/etf", Map.of(), AllFundHistory.class);
+        var op = result.getData().stream().filter(f->f.getSymbol().equals(symbol)).peek(f-> f.setDate(date)).findAny();
+        if(op.isPresent()) {
+            return op.get();
+        }
+
+        result = callApi("/api/equity-stockIndices", Map.of("index", "NIFTY 50"), AllFundHistory.class);
+        op = result.getData().stream().filter(f->f.getSymbol().equals(symbol)).peek(f-> f.setDate(date)).findAny();
+        if(op.isPresent()) {
+            return op.get();
+        }
+        LOGGER.info("Calling API for current price of {}", symbol);
+        String data = nseClient.get("/api/quote-equity", Map.of("symbol", symbol));
+        return createJsonMapper(FundDetail.class).apply(data).toFundHistory(symbol, date);
     }
 
     private Optional<FundInfo> findFundInfo(String symbol) {
@@ -154,10 +179,6 @@ public class MarketDataProviderImpl implements MarketDataProvider {
 
     @Override
     public Optional<FundHistory> getHistory(String symbol, LocalDate date) {
-        if(LocalDate.now().equals(date)) {
-            AllFundHistory result = callApi("/api/etf", Collections.emptyMap(), AllFundHistory.class);
-            return result.getData().stream().filter(f->f.getSymbol().equals(symbol)).peek(f-> f.setDate(date)).findAny();
-        }
         return getHistory(symbol).stream()
                 .filter(h->h.getDate().equals(date)).findAny();
     }
@@ -199,5 +220,43 @@ public class MarketDataProviderImpl implements MarketDataProvider {
             this.data = data;
         }
 
+    }
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class FundDetail {
+        PriceInfo priceInfo;
+
+        public void setPriceInfo(PriceInfo priceInfo) {
+            this.priceInfo = priceInfo;
+        }
+
+        public FundHistory toFundHistory(String symbol, LocalDate date) {
+            final FundHistory history = new FundHistory();
+            history.setSymbol(symbol);
+            history.setDate(date);
+            history.setOpeningPrice(priceInfo.open);
+            history.setClosingPrice(priceInfo.close);
+            history.setHighPrice(priceInfo.intraDayHighLow.get("max"));
+            history.setLowPrice(priceInfo.intraDayHighLow.get("min"));
+            history.setLastTradedPrice(priceInfo.intraDayHighLow.get("value"));
+            return history;
+        }
+    }
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class PriceInfo {
+        double open;
+        double close;
+        Map<String, Double> intraDayHighLow;
+
+        public void setOpen(double open) {
+            this.open = open;
+        }
+
+        public void setClose(double close) {
+            this.close = close;
+        }
+
+        public void setIntraDayHighLow(Map<String, Double> intraDayHighLow) {
+            this.intraDayHighLow = intraDayHighLow;
+        }
     }
 }

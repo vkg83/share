@@ -19,18 +19,19 @@ public class RedGreenStrategy extends AbstractTradingStrategy {
     }
 
     @Override
-    protected boolean execute(FundInfo fundInfo) {
+    protected FundHistory execute(FundInfo fundInfo) {
         final LocalDate now = LocalDate.now();
         var history = dataProvider.getHistory(fundInfo.getSymbol(), now.minusYears(1),now);
         var high = findHigh(history);
         var low = findLow(history);
-        return high.isPresent() && low.isPresent() && high.get().getDate().isBefore(low.get().getDate());
+        final boolean b = high.isPresent() && low.isPresent() && high.get().getDate().isBefore(low.get().getDate());
+        return null;
     }
 
     private Optional<FundHistory> findHigh(List<FundHistory> history) {
-        return history.stream().max(Comparator.comparing(FundHistory::getClosingPrice));
+        return history.stream().max(Comparator.comparing(FundHistory::getHighPrice));
     }
     private Optional<FundHistory> findLow(List<FundHistory> history) {
-        return history.stream().min(Comparator.comparing(FundHistory::getClosingPrice));
+        return history.stream().min(Comparator.comparing(FundHistory::getLowPrice));
     }
 }

@@ -1,6 +1,7 @@
 package com.vkg.finance.share.stock.extractor;
 
 import com.vkg.finance.share.stock.model.FundInfo;
+import com.vkg.finance.share.stock.model.FundType;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -43,6 +44,7 @@ public class MarketCapExtractor implements DataExtractor<List<FundInfo>> {
         final FundInfo fundInfo = new FundInfo();
         fundInfo.setSymbol(getString(row.getCell(1)));
         fundInfo.setName(getString(row.getCell(2)));
+        fundInfo.setType(FundType.STOCK);
         fundInfo.setMarketCap(getDouble(row.getCell(3)));
         return fundInfo;
     }

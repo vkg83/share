@@ -5,6 +5,7 @@ import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
 import com.vkg.finance.share.stock.repository.FileBasedFundDetailDao;
 import com.vkg.finance.share.stock.repository.MarketDataProviderImpl;
+import com.vkg.finance.share.stock.util.FileUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 
 @ExtendWith(SpringExtension.class)
@@ -40,9 +42,10 @@ class SimpleInvestmentSimulatorTest {
 
     @Test
     void shouldDoLifo() {
+        FileUtil.removeCurrent();
         InvestmentProfile p = new InvestmentProfile("sim_etf");
         p.setBalance(400000);
-        unit.doLifoShop(p);
+        unit.doLifoShop(p, LocalDate.now());
     }
 
     @Test
@@ -53,6 +56,15 @@ class SimpleInvestmentSimulatorTest {
     @Test
     void shouldSimulateLifo() {
         unit.simulateLifoShop();
+    }
+
+    @Test
+    void shouldSimulateDarvos() {
+        InvestmentProfile p = new InvestmentProfile("sim_darvos");
+        p.setBalance(100000);
+        FundInfo info = new FundInfo();
+        info.setSymbol("HDFCBANK");
+        unit.simulateDarvos(p, info);
     }
 
 }

@@ -47,7 +47,7 @@ public class InvestmentProfile {
     }
 
     public void purchase(FundHistory history, double minAmount) {
-        double price = history.getClosingPrice();
+        double price = history.getLastTradedPrice();
         int qty = (int) (minAmount / price) + 1;
         purchase(history.getSymbol(), history.getDate(), price, qty);
     }
@@ -127,7 +127,7 @@ public class InvestmentProfile {
         investments.remove(investment);
         Divestment divestment = new Divestment();
         divestment.setInvestment(investment);
-        divestment.setPrice(history.getClosingPrice());
+        divestment.setPrice(history.getLastTradedPrice());
         divestment.setDate(history.getDate());
         divestments.add(divestment);
 

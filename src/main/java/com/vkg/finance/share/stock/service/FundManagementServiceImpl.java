@@ -52,7 +52,7 @@ public class FundManagementServiceImpl implements FundManagementService {
         DarvosTradingStrategy strategy = new DarvosTradingStrategy(dataProvider);
         RedGreenStrategy s = new RedGreenStrategy(dataProvider);
         strategy.setNext(s);
-        return allFundInfos.stream().filter(strategy::buy).collect(Collectors.toList());
+        return allFundInfos.stream().filter(i -> strategy.buy(i) != null).collect(Collectors.toList());
     }
 
     @Override

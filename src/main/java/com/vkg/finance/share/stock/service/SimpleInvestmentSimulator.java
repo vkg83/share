@@ -3,6 +3,7 @@ package com.vkg.finance.share.stock.service;
 import com.vkg.finance.share.stock.config.MarketConfig;
 import com.vkg.finance.share.stock.model.*;
 import com.vkg.finance.share.stock.repository.MarketDataProvider;
+import com.vkg.finance.share.stock.strategies.DarvosTradingStrategy;
 import com.vkg.finance.share.stock.strategies.MovingAverageStrategy;
 import com.vkg.finance.share.stock.strategies.SimpleFundSelector;
 import org.slf4j.Logger;
@@ -11,9 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,10 +32,14 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     @Autowired
     private MarketConfig marketConfig;
 
-    public void doLifoShop(InvestmentProfile p) {
-        List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
+    public void doLifoShop(InvestmentProfile p, LocalDate today) {
 
-        LocalDate today = LocalDate.now().minusDays(1);
+        if (marketConfig.isMarketClosed(today)) {
+            LOGGER.info("Market closed on {}", today);
+            return;
+        }
+
+        List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
         var s = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
                 .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID");
@@ -43,11 +50,6 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         List<FundInfo> stocks = load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
-
-        if (marketConfig.isMarketClosed(today)) {
-            LOGGER.info("Market closed on {}", today);
-            return;
-        }
 
         strategy.setCurrentDate(today);
         double dailyFund = DAILY_FUND * (1 + (p.getDivestments().size() * 0.0375)/120);
@@ -180,7 +182,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
                 continue;
             }
             FundHistory h = history.get();
-            double price = h.getClosingPrice();
+            double price = h.getLastTradedPrice();
             Investment inv = p.getLastInvestment(h.getSymbol());
             double am = inv.getAmount();
             int qty = p.getInvestedQuantity(h.getSymbol());
@@ -218,7 +220,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
                 continue;
             }
             FundHistory h = history.get();
-            double price = h.getClosingPrice();
+            double price = h.getLastTradedPrice();
             double am = p.getInvestedAmount(symbol);
             int qty = p.getInvestedQuantity(symbol);
             if(am / qty * 1.05 < price) {
@@ -290,7 +292,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             return false;
         }
 
-        return h.getClosingPrice() < totalCost / qty * (1 - qty * 0.05);
+        return h.getLastTradedPrice() < totalCost / qty * (1 - qty * 0.05);
     }
 
     private void print(InvestmentProfile p) {
@@ -325,4 +327,43 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         LOGGER.info("Remaining: {}", p.getInvestments().stream().map(Investment::getStockSymbol).collect(Collectors.joining(" | ")));
     }
 
+    public void simulateDarvos(InvestmentProfile p, FundInfo stock) {
+        DarvosTradingStrategy strategy = new DarvosTradingStrategy(dataProvider);
+        LocalDate today = LocalDate.now();
+        LocalDate currentDate = today.minusYears(1);
+        while(currentDate.isBefore(today)) {
+            strategy.setCurrentDate(currentDate);
+            var flag = strategy.buy(stock);
+            if(flag != null) {
+                LOGGER.info("Buy on {} for {}", currentDate, flag.getLastTradedPrice());
+                currentDate = currentDate.with(TemporalAdjusters.next(DayOfWeek.THURSDAY));
+                p.purchase(flag, 5000);
+            }
+            var cur = dataProvider.getHistory(stock.getSymbol(), currentDate);
+            cur.ifPresent(history -> calcNotionalProfit(p, history));
+            currentDate = currentDate.plusDays(1);
+        }
+        LOGGER.info("Notional profit {}, {}%", p.getProfit(), p.getGrossProfit() * 100 / p.getInvestedAmount());
+    }
+
+    private void calcNotionalProfit(InvestmentProfile p, FundHistory h) {
+        double profit = 0;
+        List<Investment> investments = new ArrayList<>();
+        for (var i: p.getInvestments()) {
+            if(i.getAmount() * 1.05 < h.getLastTradedPrice() * i.getQuantity()) {
+                profit  += h.getLastTradedPrice() * i.getQuantity() - i.getAmount();
+                investments.add(i);
+            }
+        }
+
+        for(var i: investments) {
+            p.sell(i, h);
+        }
+
+        if(profit > 0) {
+            LOGGER.info("Notional profit {}, {}%", profit, (int )(profit * 100 / p.getInvestedAmount()));
+        }
+
+
+    }
 }

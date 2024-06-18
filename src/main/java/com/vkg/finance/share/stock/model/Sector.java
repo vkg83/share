@@ -1,0 +1,5 @@
+package com.vkg.finance.share.stock.model;
+
+public enum Sector {
+    AUTO, BANK, FINANCIAL_SERVICES, FMCG, HEALTHCARE, IT, MEDIA, METAL, PHARMA, PRIVATE_BANK, PSU_BANK, REALITY, CONSUMER_DURABLES, OIL_AND_GAS
+}

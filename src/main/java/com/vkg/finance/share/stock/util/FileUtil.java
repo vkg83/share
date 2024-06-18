@@ -56,6 +56,12 @@ public class FileUtil {
         });
     }
 
+    public static void removeCurrent() {
+        File path = new File("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\"+LocalDate.now());
+        if(new File(path, "apietfGET.txt").delete()) System.out.println("deleted apietfGET.txt");
+        if(new File(path, "apiequitystockIndicesGETindexNIFTY50.txt").delete()) System.out.println("deleted apiequitystockIndicesGETindexNIFTY50.txt");
+    }
+
     private static void clean(File path, String postFix) {
 
         final File[] files = path.listFiles((f, name) -> name.endsWith(postFix));
@@ -66,11 +72,12 @@ public class FileUtil {
                 System.out.println("deleted file " + file);
         }
         if(new File(path, "apietfGET.txt").delete()) System.out.println("deleted apietfGET.txt");
+        if(new File(path, "apiequitystockIndicesGETindexNIFTY50.txt").delete()) System.out.println("deleted apiequitystockIndicesGETindexNIFTY50.txt");
     }
 
     public static void main(String[] args) {
-        String date = "2024-06-15";
-        String toDate = "from01042024to15062024.txt";
+        String date = "2024-06-17";
+        String toDate = "from01042024to17062024.txt";
         File p = new File("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\"+date);
         clean(p, toDate);
         var flag = p.renameTo(new File(p.getParent(), LocalDate.now().toString()));

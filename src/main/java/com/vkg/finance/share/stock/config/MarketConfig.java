@@ -32,4 +32,8 @@ public class MarketConfig {
         return date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY
                 || holidays.contains(date);
     }
+
+    public boolean isMarketOpen(LocalDate date) {
+        return !isMarketClosed(date);
+    }
 }

@@ -36,19 +36,19 @@ public class FundHistory {
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     @JsonAlias({"CH_SYMBOL", "symbol"})
     private String symbol;
-    @JsonAlias("CH_OPENING_PRICE")
+    @JsonAlias({"CH_OPENING_PRICE", "open"})
     private double openingPrice;
-    @JsonAlias({"CH_CLOSING_PRICE", "ltP"})
+    @JsonAlias({"CH_CLOSING_PRICE", "ltP", "lastPrice"})
     private double closingPrice;
-    @JsonAlias("CH_TRADE_HIGH_PRICE")
+    @JsonAlias({"CH_TRADE_HIGH_PRICE", "high", "dayHigh"})
     private double highPrice;
-    @JsonAlias("CH_TRADE_LOW_PRICE")
+    @JsonAlias({"CH_TRADE_LOW_PRICE", "low", "dayLow"})
     private double lowPrice;
-    @JsonAlias("CH_LAST_TRADED_PRICE")
+    @JsonAlias({"CH_LAST_TRADED_PRICE", "ltP", "lastPrice"})
     private double lastTradedPrice;
     @JsonAlias("CH_TIMESTAMP")
     private LocalDate date;
-    @JsonAlias({"CH_TOT_TRADED_QTY", "qty"})
+    @JsonAlias({"CH_TOT_TRADED_QTY", "qty", "totalTradedVolume"})
     private long volume;
 
     public String getSymbol() {
@@ -97,6 +97,7 @@ public class FundHistory {
 
     public void setLastTradedPrice(double lastTradedPrice) {
         this.lastTradedPrice = lastTradedPrice;
+        this.closingPrice = lastTradedPrice;
     }
 
     public LocalDate getDate() {
@@ -141,7 +142,7 @@ public class FundHistory {
             double d = Double.parseDouble(m.group(1));
             factor = n / d;
         } else {
-            throw new RuntimeException("Not able to sanitize history for " + symbol + " on " + date);
+            throw new RuntimeException("Not able to adjust history for " + symbol + " on " + date);
         }
 
         return factor;

@@ -25,7 +25,7 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
         this.dataProvider = dataProvider;
         this.currentDate = LocalDate.now();
         this.historyDays = 20;
-
+        this.maxResultCount = 10;
     }
 
     public void setHistoryDays(int historyDays) {
@@ -58,9 +58,9 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
             fundAnalyses.add(analysis);
         }
 
-//        if(!noHistorySymbols.isEmpty()) {
-//            LOGGER.warn("No history available for {} on {}", noHistorySymbols, currentDate);
-//        }
+        if(!noHistorySymbols.isEmpty()) {
+            LOGGER.debug("No history available for {} on {}", noHistorySymbols, currentDate);
+        }
 
         fundAnalyses.sort(Comparator.comparingDouble(FundWithHistory::getPriceChangePercent));
         LOGGER.debug("+------------------------------------------------------------+");
@@ -70,10 +70,10 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
             FundWithHistory a = fundAnalyses.get(i);
             FundInfo v = a.getFund();
             String history = a.getFundHistory().stream().map(f -> Double.toString(f.getClosingPrice())).collect(Collectors.joining(", "));
-            LOGGER.debug(String.format("| %3d | %-15s | %4.4f %% | %s | %10s |", i + 1, v.getSymbol(), a.getPriceChangePercent(), history, v.getActionDate()));
+            LOGGER.info(String.format("| %3d | %-15s | %4.4f %% | %s | %10s |", i + 1, v.getSymbol(), a.getPriceChangePercent(), history, v.getActionDate()));
         }
         LOGGER.debug("+------------------------------------------------------------+");
-        return fundAnalyses.subList(0, Math.min(10, fundAnalyses.size())).stream()
+        return fundAnalyses.subList(0, Math.min(maxResultCount, fundAnalyses.size())).stream()
                 .map(FundWithHistory::getFund).collect(Collectors.toList());
     }
 
