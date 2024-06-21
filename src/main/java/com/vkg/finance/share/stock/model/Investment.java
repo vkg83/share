@@ -1,5 +1,7 @@
 package com.vkg.finance.share.stock.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDate;
 
 public class Investment {
@@ -40,6 +42,7 @@ public class Investment {
         this.date = date;
     }
 
+    @JsonIgnore
     public double getAmount() {
         return price * quantity;
     }

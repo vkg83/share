@@ -42,7 +42,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
         var s = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID");
+                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID", "GSEC", "GILT");
         List<FundInfo> etfs = s.select(allFundInfos);
         List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
@@ -74,7 +74,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         LocalDate today = LocalDate.now();
         var s = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID");
+                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID", "GSEC", "GILT");
         List<FundInfo> etfs = s.select(allFundInfos);
         List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
@@ -120,7 +120,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         LocalDate today = LocalDate.now();
         var s = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID");
+                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID", "GILT", "GSEC");
         List<FundInfo> etfs = s.select(allFundInfos);
         List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
                 .setCurrentDate(today)
@@ -314,7 +314,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             });
             var investments = holdMap.getOrDefault(date, List.of());
             investments.forEach(i ->
-                LOGGER.info("\tHold {} {}({}): {}", Period.between(i.getDate(), today), i.getStockSymbol(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
+                LOGGER.info("\tHold {} {}({} * {}): {}", Period.between(i.getDate(), today), i.getStockSymbol(), i.getQuantity(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
             );
             investments = investmentMap.getOrDefault(date, List.of());
             investments.forEach(i ->

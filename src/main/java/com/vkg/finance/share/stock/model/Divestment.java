@@ -1,5 +1,7 @@
 package com.vkg.finance.share.stock.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDate;
 
 public class Divestment {
@@ -33,18 +35,22 @@ public class Divestment {
         this.date = date;
     }
 
+    @JsonIgnore
     public double getGrossProfit() {
         return getSellAmount() - investment.getAmount();
     }
 
+    @JsonIgnore
     public double getProfit() {
         return getGrossProfit() - brokerage() - tax();
     }
 
+    @JsonIgnore
     public double getSellAmount() {
         return price * investment.getQuantity();
     }
 
+    @JsonIgnore
     public double getBalance() {
         return investment.getAmount() + getProfit();
     }

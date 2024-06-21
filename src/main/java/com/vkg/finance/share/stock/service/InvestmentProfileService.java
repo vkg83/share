@@ -1,13 +1,14 @@
 package com.vkg.finance.share.stock.service;
 
 import com.vkg.finance.share.stock.model.InvestmentProfile;
-import com.vkg.finance.share.stock.model.Investment;
+
+import java.time.LocalDate;
 
 public interface InvestmentProfileService {
 
-    InvestmentProfile createProfile(String profileName);
+    InvestmentProfile createProfile(String profileName, double balance);
 
-    void addInvestment(String profileName, Investment investment);
+    void purchase(String profileName, String symbol, LocalDate date, int quantity, double price);
 
     InvestmentProfile getProfile(String profileName);
 }

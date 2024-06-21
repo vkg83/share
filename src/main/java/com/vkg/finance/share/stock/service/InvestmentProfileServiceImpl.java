@@ -1,27 +1,28 @@
 package com.vkg.finance.share.stock.service;
 
 import com.vkg.finance.share.stock.model.InvestmentProfile;
-import com.vkg.finance.share.stock.model.Investment;
 import com.vkg.finance.share.stock.repository.InvestmentProfileDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
 
 @Service
 public class InvestmentProfileServiceImpl implements InvestmentProfileService {
     @Autowired
     private InvestmentProfileDao dao;
     @Override
-    public InvestmentProfile createProfile(String profileName) {
+    public InvestmentProfile createProfile(String profileName, double balance) {
         var profile = new InvestmentProfile(profileName);
+        profile.setBalance(balance);
         dao.save(profile);
         return profile;
     }
 
     @Override
-    public void addInvestment(String profileName, Investment investment) {
+    public void purchase(String profileName, String symbol, LocalDate date, int quantity, double price) {
         var profile = dao.load(profileName);
-        var investments = profile.getInvestments();
-        investments.add(investment);
+        profile.purchase(symbol, date, price, quantity);
         dao.save(profile);
     }
 

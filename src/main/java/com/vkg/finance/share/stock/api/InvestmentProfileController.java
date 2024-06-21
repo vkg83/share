@@ -14,7 +14,7 @@ public class InvestmentProfileController {
 
     @PostMapping("{profileName}")
     public InvestmentProfile createProfile(@PathVariable String profileName) {
-        return profileService.createProfile(profileName);
+        return profileService.createProfile(profileName, 0);
     }
 
     @GetMapping("{profileName}")
@@ -24,6 +24,6 @@ public class InvestmentProfileController {
 
     @PostMapping("{profileName}/invest")
     public void addFund(@PathVariable String profileName, @RequestBody Investment investment) {
-        profileService.addInvestment(profileName, investment);
+        profileService.purchase(profileName,investment.getStockSymbol(), investment.getDate(), investment.getQuantity(), investment.getPrice());
     }
 }

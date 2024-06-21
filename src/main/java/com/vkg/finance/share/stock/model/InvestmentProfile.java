@@ -1,6 +1,7 @@
 package com.vkg.finance.share.stock.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
@@ -52,7 +53,7 @@ public class InvestmentProfile {
         purchase(history.getSymbol(), history.getDate(), price, qty);
     }
 
-    private void purchase(String symbol, LocalDate date, double price, int quantity) {
+    public void purchase(String symbol, LocalDate date, double price, int quantity) {
         if (balance < price * quantity) {
             throw new RuntimeException("Not enough balance!");
         }
@@ -134,19 +135,23 @@ public class InvestmentProfile {
         balance += divestment.getBalance();
     }
 
+    @JsonIgnore
     public double getProfit() {
         return divestments.stream().mapToDouble(Divestment::getProfit).sum();
     }
 
+    @JsonIgnore
     public double getGrossProfit() {
         return divestments.stream().mapToDouble(Divestment::getGrossProfit).sum();
     }
 
+    @JsonIgnore
     public double getInvestedAmount() {
         return investments.stream()
                 .mapToDouble(Investment::getAmount).sum();
     }
 
+    @JsonIgnore
     public int getInvestedQuantity() {
         return investments.stream()
                 .mapToInt(Investment::getQuantity).sum();
