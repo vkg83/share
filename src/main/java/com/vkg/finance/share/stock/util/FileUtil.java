@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.IsoFields;
 
 public class FileUtil {
 
@@ -56,34 +58,51 @@ public class FileUtil {
         });
     }
 
-    public static void removeCurrent() {
-        File path = new File("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\"+LocalDate.now());
-        if(new File(path, "apietfGET.txt").delete()) System.out.println("deleted apietfGET.txt");
-        if(new File(path, "apiequitystockIndicesGETindexNIFTY50.txt").delete()) System.out.println("deleted apiequitystockIndicesGETindexNIFTY50.txt");
+    public static void removeCurrent(Path path) throws IOException {
+        Files.deleteIfExists(path.resolve("apietfGET.txt"));
+        Files.deleteIfExists(path.resolve("apiequitystockIndicesGETindexNIFTY50.txt"));
     }
 
-    private static void clean(File path, String postFix) {
-
-        final File[] files = path.listFiles((f, name) -> name.endsWith(postFix));
+    private static int clean(Path path, String postFix) throws IOException {
+        final File[] files = path.toFile().listFiles((f, name) -> name.endsWith(postFix));
         assert files != null;
         for (File file : files) {
-            var f = file.delete();
-            if(f)
-                System.out.println("deleted file " + file);
+            Files.delete(file.toPath());
         }
-        if(new File(path, "apietfGET.txt").delete()) System.out.println("deleted apietfGET.txt");
-        if(new File(path, "apiequitystockIndicesGETindexNIFTY50.txt").delete()) System.out.println("deleted apiequitystockIndicesGETindexNIFTY50.txt");
+        removeCurrent(path);
+        return files.length + 2;
     }
 
-    public static void main(String[] args) {
-        String date = "2024-06-20";
-        String toDate = "from01042024to20062024.txt";
-        File p = new File("C:\\Users\\Vishnu Kant Gupta\\Documents\\nse_data\\cache\\"+date);
-        clean(p, toDate);
-        var flag = p.renameTo(new File(p.getParent(), LocalDate.now().toString()));
-        if(flag) {
-            System.out.println("Renamed folder " + date + " to " + LocalDate.now());
-        }
-    }
+    public static int refresh(Path basePath) throws IOException {
+        var base = basePath.toFile();
+        final File[] files = base.listFiles((f, name) -> f.isDirectory());
+        assert files != null;
+        LocalDate date = null;
+        for(File f : files) {
+            try {
+                date = LocalDate.parse(f.getName());
+            } catch(Exception ignored) {
 
+            }
+        }
+        if(date == null) {
+            return 0;
+        }
+
+        final LocalDate today = LocalDate.now();
+        if(date.equals(today)) {
+            return 0;
+        }
+
+        LocalDate from = date.with(IsoFields.DAY_OF_QUARTER, 1);
+        var fmt = DateTimeFormatter.ofPattern("ddMMyyyy");
+        String toDate = String.format("from%sto%s.txt", from.format(fmt), date.format(fmt));
+
+        Path oldPath = basePath.resolve(date.toString());
+        int count = clean(oldPath, toDate);
+
+        Files.move(oldPath, basePath.resolve(today.toString()));
+
+        return count;
+    }
 }

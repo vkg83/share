@@ -2,7 +2,6 @@ package com.vkg.finance.share.stock.service;
 
 import com.vkg.finance.share.stock.client.NSEJSoupClient;
 import com.vkg.finance.share.stock.model.FundInfo;
-import com.vkg.finance.share.stock.model.Investment;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
 import com.vkg.finance.share.stock.repository.FileBasedFundDetailDao;
 import com.vkg.finance.share.stock.repository.FileBasedInvestmentProfileDao;
@@ -13,10 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.Comparator;
 
@@ -32,6 +34,8 @@ class SimpleInvestmentSimulatorTest {
     private FundManagementService fundManagementService;
     @Autowired
     private InvestmentProfileService investmentProfileService;
+    @Value("${rest.cache.path}")
+    private Path cacheBasePath;
 
     @BeforeEach
     void setUp() {
@@ -49,17 +53,18 @@ class SimpleInvestmentSimulatorTest {
     @Test
     void saveInvestment() {
         var date = LocalDate.now();
-        investmentProfileService.purchase("NEHA_ETF_SHOP", "MAHKTECH", date, 357, 14.06);
-        investmentProfileService.purchase("NEHA_ETF_SHOP", "SILVER1", date, 56, 89.69);
-        investmentProfileService.purchase("NEHA_ETF_SHOP", "LT", date, 2, 3532.25);
+        investmentProfileService.purchase("NEHA_ETF_SHOP", "MASPTOP50", date, 116, 43.39);
+        investmentProfileService.purchase("NEHA_ETF_SHOP", "ESILVER", date, 57, 88.90);
+        investmentProfileService.purchase("NEHA_ETF_SHOP", "HINDUNILVR", date, 3, 2428.75);
         System.out.println("Saved");
     }
 
     @Test
-    void shouldDoLifo() {
-        FileUtil.removeCurrent();
+    void shouldDoLifo() throws IOException {
+        final LocalDate today = LocalDate.now();
+        FileUtil.removeCurrent(cacheBasePath.resolve(today.toString()));
         var p = investmentProfileService.getProfile("NEHA_ETF_SHOP");
-        unit.doLifoShop(p, LocalDate.now());
+        unit.doLifoShop(p, today);
     }
 
     @Test
@@ -73,8 +78,8 @@ class SimpleInvestmentSimulatorTest {
     }
 
     @Test
-    void shouldSimulateDarvos() {
-        InvestmentProfile p = new InvestmentProfile("sim_darvos");
+    void shouldSimulateDarvas() {
+        InvestmentProfile p = new InvestmentProfile("sim_darvas");
         p.setBalance(100000);
         FundInfo info = new FundInfo();
         info.setSymbol("HDFCBANK");

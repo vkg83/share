@@ -40,14 +40,9 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         }
 
         List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
-        var s = new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID", "GSEC", "GILT");
-        List<FundInfo> etfs = s.select(allFundInfos);
-        List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos);
-        List<FundInfo> stocks = load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
+        List<FundInfo> etfs = getEtfs(allFundInfos, today);
+        List<FundInfo> jwel = getJewellery(allFundInfos, today);
+        List<FundInfo> stocks = getStocks();
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
@@ -72,14 +67,9 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
 
         LocalDate today = LocalDate.now();
-        var s = new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID", "GSEC", "GILT");
-        List<FundInfo> etfs = s.select(allFundInfos);
-        List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos);
-        List<FundInfo> stocks = load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
+        List<FundInfo> etfs = getEtfs(allFundInfos, today);
+        List<FundInfo> jwel = getJewellery(allFundInfos, today);
+        List<FundInfo> stocks = getStocks();
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
@@ -118,18 +108,13 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
 
         LocalDate today = LocalDate.now();
-        var s = new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID", "GILT", "GSEC");
-        List<FundInfo> etfs = s.select(allFundInfos);
-        List<FundInfo> jwel = new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos);
-        List<FundInfo> stocks = load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
+        List<FundInfo> etfs = getEtfs(allFundInfos, today);
+        List<FundInfo> jwel = getJewellery(allFundInfos, today);
+        List<FundInfo> stocks = getStocks();
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
-        final int dailyFund = DAILY_FUND;
+        double dailyFund = DAILY_FUND;
         LocalDate curDate = today.minusYears(1);
         while (curDate.isBefore(today)) {
             curDate = curDate.plusDays(1);
@@ -143,9 +128,29 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             boolean purchased3 = process(p, curDate, strategy.select(stocks), dailyFund);
             if (!(purchased1 || purchased2 || purchased3))
                 tryAverage(p, curDate, dailyFund);
+
+            dailyFund = DAILY_FUND * (1 + (p.getDivestments().size() * 0.0375)/120);
         }
 
         print(p);
+    }
+
+    private List<FundInfo> getEtfs(List<FundInfo> allFundInfos, LocalDate today) {
+        return new SimpleFundSelector(dataProvider)
+                .setCurrentDate(today)
+                .setMinVolume(MIN_VOLUME)
+                .excludeAssets("GOLD", "SILVER", "LIQUID", "GSEC", "GILT")
+                .select(allFundInfos);
+    }
+
+    private List<FundInfo> getJewellery(List<FundInfo> allFundInfos, LocalDate today) {
+        return new SimpleFundSelector(dataProvider)
+                .setCurrentDate(today)
+                .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos);
+    }
+
+    private static List<FundInfo> getStocks() {
+        return load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
     }
 
     private static List<FundInfo> load(String... symbols) {
@@ -324,7 +329,12 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
         var s = String.format("Balance: %8.2f, invested: %8.2f, grossProfit: %1.2f totalProfit: %7.2f, steps: %d, remaining %d", p.getBalance(), p.getInvestedAmount(), p.getGrossProfit(), p.getProfit(), p.getDivestments().size(), p.getInvestments().size());
         LOGGER.info("Final {}", s);
-        LOGGER.info("Remaining: {}", p.getInvestments().stream().map(Investment::getStockSymbol).collect(Collectors.joining(" | ")));
+        LOGGER.info("Remaining: {}", p.getInvestments().stream().map(this::symbolWithProfit).collect(Collectors.joining(" | ")));
+    }
+
+    private String symbolWithProfit(Investment investment) {
+        double p = dataProvider.getHistory(investment.getStockSymbol(), LocalDate.now()).map(FundHistory::getLastTradedPrice).orElse(0.0);
+        return String.format("%s %6.2f %%", investment.getStockSymbol(), (p - investment.getPrice()) * 100/ investment.getPrice());
     }
 
     public void simulateDarvos(InvestmentProfile p, FundInfo stock) {

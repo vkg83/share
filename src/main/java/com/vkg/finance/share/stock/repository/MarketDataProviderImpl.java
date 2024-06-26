@@ -80,6 +80,10 @@ public class MarketDataProviderImpl implements MarketDataProvider {
         }
         String response = null;
         try {
+            int count = FileUtil.refresh(cacheBasePath);
+            if(count > 0) {
+                LOGGER.info("Removed {} files while refresh", count);
+            }
             response = FileUtil.loadFromFile(getCachePathForToday().resolve(fileName));
             memoCache.put(fileName, response);
         } catch (IOException e) {
