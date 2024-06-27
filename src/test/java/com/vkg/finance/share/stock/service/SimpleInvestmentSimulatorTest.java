@@ -47,7 +47,7 @@ class SimpleInvestmentSimulatorTest {
         fundManagementService.getFundDetails().stream()
                 .filter(i -> i.getMarketCap()!=null)
                 .sorted(Comparator.comparing(FundInfo::getMarketCap).reversed()).limit(50)
-                .forEach(i -> System.out.println(i.getSymbol() + " " + i.getMarketCap()));
+                .forEach(i -> System.out.printf("%-10s | %,12.0f %n", i.getSymbol(), i.getMarketCap()));
     }
 
     @Test
