@@ -11,4 +11,6 @@ public interface InvestmentProfileService {
     void purchase(String profileName, String symbol, LocalDate date, int quantity, double price);
 
     InvestmentProfile getProfile(String profileName);
+
+    void sellLast(String profileName, String symbol, LocalDate date, double price);
 }

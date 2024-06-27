@@ -1,5 +1,6 @@
 package com.vkg.finance.share.stock.service;
 
+import com.vkg.finance.share.stock.model.FundHistory;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
 import com.vkg.finance.share.stock.repository.InvestmentProfileDao;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,5 +30,16 @@ public class InvestmentProfileServiceImpl implements InvestmentProfileService {
     @Override
     public InvestmentProfile getProfile(String profileName) {
         return dao.load(profileName);
+    }
+
+    @Override
+    public void sellLast(String profileName, String symbol, LocalDate date, double price) {
+        var profile = dao.load(profileName);
+        FundHistory history = new FundHistory();
+        history.setSymbol(symbol);
+        history.setDate(date);
+        history.setLastTradedPrice(price);
+        profile.sellLast(history);
+        dao.save(profile);
     }
 }

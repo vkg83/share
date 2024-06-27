@@ -47,15 +47,16 @@ class SimpleInvestmentSimulatorTest {
         fundManagementService.getFundDetails().stream()
                 .filter(i -> i.getMarketCap()!=null)
                 .sorted(Comparator.comparing(FundInfo::getMarketCap).reversed()).limit(50)
-                .forEach(i -> System.out.println(i.getSymbol()));
+                .forEach(i -> System.out.println(i.getSymbol() + " " + i.getMarketCap()));
     }
 
     @Test
     void saveInvestment() {
         var date = LocalDate.now();
-        investmentProfileService.purchase("NEHA_ETF_SHOP", "MASPTOP50", date, 116, 43.39);
-        investmentProfileService.purchase("NEHA_ETF_SHOP", "ESILVER", date, 57, 88.90);
-        investmentProfileService.purchase("NEHA_ETF_SHOP", "HINDUNILVR", date, 3, 2428.75);
+        //investmentProfileService.sellLast("NEHA_ETF_SHOP", "RELIANCE", date, 3071.75);
+        //investmentProfileService.purchase("NEHA_ETF_SHOP", "PSUBANKADD", date, 69, 73.24);
+        //investmentProfileService.purchase("NEHA_ETF_SHOP", "SILVRETF", date, 58, 86.50);
+        //investmentProfileService.purchase("NEHA_ETF_SHOP", "MARUTI", date, 1, 12177.35);
         System.out.println("Saved");
     }
 

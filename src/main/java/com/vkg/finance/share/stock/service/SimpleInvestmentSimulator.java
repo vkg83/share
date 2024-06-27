@@ -28,6 +28,8 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     public static final int MIN_VOLUME = 10000;
     @Autowired
     private MarketDataProvider dataProvider;
+    @Autowired
+    private FundManagementService fundManagementService;
 
     @Autowired
     private MarketConfig marketConfig;
@@ -149,8 +151,11 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
                 .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos);
     }
 
-    private static List<FundInfo> getStocks() {
-        return load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
+    private List<FundInfo> getStocks() {
+        return fundManagementService.getFundDetails().stream()
+                .filter(i -> i.getMarketCap()!=null)
+                .sorted(Comparator.comparing(FundInfo::getMarketCap).reversed()).limit(25).collect(Collectors.toList());
+        //return load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
     }
 
     private static List<FundInfo> load(String... symbols) {
