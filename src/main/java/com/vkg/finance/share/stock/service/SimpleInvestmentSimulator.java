@@ -320,7 +320,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
                 var i = b.getInvestment();
                 var percent = b.getGrossProfit() * 100 / i.getAmount();
                 var s = String.format("%1.2f, %1.2f%%", b.getProfit(), percent);
-                LOGGER.info("\tSold {} {} {}",i.getStockSymbol(), s, Period.between(i.getDate(), date));
+                LOGGER.info("\tSold {} {} {} {}", i.getQuantity(), i.getStockSymbol(), s, Period.between(i.getDate(), date));
             });
             var investments = holdMap.getOrDefault(date, List.of());
             investments.forEach(i ->
@@ -334,12 +334,15 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
         var s = String.format("Balance: %8.2f, invested: %8.2f, grossProfit: %1.2f totalProfit: %7.2f, steps: %d, remaining %d", p.getBalance(), p.getInvestedAmount(), p.getGrossProfit(), p.getProfit(), p.getDivestments().size(), p.getInvestments().size());
         LOGGER.info("Final {}", s);
-        LOGGER.info("Remaining: {}", p.getInvestments().stream().map(this::symbolWithProfit).collect(Collectors.joining(" | ")));
+        LOGGER.info("Remaining: {}", p.getInvestments().stream().map(this::symbolWithProfit)
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                .map(e -> String.format("%s %6.2f %%", e.getKey(),e.getValue()))
+                .collect(Collectors.joining(" | ")));
     }
 
-    private String symbolWithProfit(Investment investment) {
+    private Map.Entry<String, Double> symbolWithProfit(Investment investment) {
         double p = dataProvider.getHistory(investment.getStockSymbol(), LocalDate.now()).map(FundHistory::getLastTradedPrice).orElse(0.0);
-        return String.format("%s %6.2f %%", investment.getStockSymbol(), (p - investment.getPrice()) * 100/ investment.getPrice());
+        return new AbstractMap.SimpleImmutableEntry<>(investment.getStockSymbol(), (p - investment.getPrice()) * 100/ investment.getPrice());
     }
 
     public void simulateDarvos(InvestmentProfile p, FundInfo stock) {
