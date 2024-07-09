@@ -87,4 +87,10 @@ class SimpleInvestmentSimulatorTest {
         unit.simulateDarvos(p, info);
     }
 
+    @Test
+    void shouldSimulateUsingTA() throws IOException {
+        final LocalDate today = LocalDate.now();
+        FileUtil.removeCurrent(cacheBasePath.resolve(today.toString()));
+        unit.simulate();
+    }
 }

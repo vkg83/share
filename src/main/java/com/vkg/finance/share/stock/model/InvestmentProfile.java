@@ -162,6 +162,11 @@ public class InvestmentProfile {
                 .mapToDouble(Investment::getAmount).sum();
     }
 
+    public int getInvestedCount(String symbol) {
+        return (int)investments.stream().filter(inv -> inv.getStockSymbol().equals(symbol))
+                .count();
+    }
+
     public int getInvestedQuantity(String symbol) {
         return investments.stream().filter(inv -> inv.getStockSymbol().equals(symbol))
                 .mapToInt(Investment::getQuantity).sum();

@@ -11,13 +11,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StopWatch;
+import org.ta4j.core.*;
+import org.ta4j.core.indicators.numeric.NumericIndicator;
+import org.ta4j.core.num.DecimalNum;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.Period;
+import java.text.NumberFormat;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +30,8 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleInvestmentSimulator.class);
     public static final int DAILY_FUND = 5000;
     public static final int MIN_VOLUME = 10000;
+    public static final int TARGET_PERCENT = 10;
+    public static final int MAX_SELECTION = 5;
     @Autowired
     private MarketDataProvider dataProvider;
     @Autowired
@@ -64,7 +70,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     @Override
     public void simulateLifoShop() {
         InvestmentProfile p = new InvestmentProfile("sim_etf");
-        p.setBalance(400000);
+        p.setBalance(500000);
 
         List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
 
@@ -76,7 +82,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
         double dailyFund = DAILY_FUND;
-        LocalDate curDate = today.minusYears(1);
+        LocalDate curDate = today.minusYears(1).minusDays(30);
         StringBuilder balStr = new StringBuilder();
         while (curDate.isBefore(today)) {
             curDate = curDate.plusDays(1);
@@ -155,7 +161,6 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         return fundManagementService.getFundDetails().stream()
                 .filter(i -> i.getMarketCap()!=null)
                 .sorted(Comparator.comparing(FundInfo::getMarketCap).reversed()).limit(25).collect(Collectors.toList());
-        //return load("HDFCBANK", "RELIANCE", "ICICIBANK", "INFY", "ITC", "TCS", "AXISBANK", "LT", "KOTAKBANK", "HINDUNILVR");
     }
 
     private static List<FundInfo> load(String... symbols) {
@@ -171,12 +176,12 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
     private boolean process(InvestmentProfile p, LocalDate curDate, List<FundInfo> fundInfos, double dailyFund) {
         trySell(p, curDate);
-        return tryPurchase(p, fundInfos.subList(0, Math.min(fundInfos.size(), 5)), curDate, dailyFund);
+        return tryPurchase(p, fundInfos.subList(0, Math.min(fundInfos.size(), MAX_SELECTION)), curDate, dailyFund);
     }
 
     private boolean processLast(InvestmentProfile p, LocalDate curDate, List<FundInfo> fundInfoList, double dailyFund) {
         trySellLast(p, curDate);
-        return tryPurchase(p, fundInfoList.subList(0, Math.min(fundInfoList.size(), 5)), curDate, dailyFund);
+        return tryPurchase(p, fundInfoList.subList(0, Math.min(fundInfoList.size(), MAX_SELECTION)), curDate, dailyFund);
     }
 
 
@@ -195,11 +200,12 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             double price = h.getLastTradedPrice();
             Investment inv = p.getLastInvestment(h.getSymbol());
             double am = inv.getAmount();
+            int count = p.getInvestedCount(h.getSymbol());
             int qty = p.getInvestedQuantity(h.getSymbol());
-            double target = .05;
-            if(qty == 4) {
+            double target = TARGET_PERCENT / 100.0;
+            if(count == 4) {
                 target *= 2;
-            } else if(qty > 4) {
+            } else if(count > 4) {
                 target *= 3;
             }
             target += 1;
@@ -233,7 +239,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             double price = h.getLastTradedPrice();
             double am = p.getInvestedAmount(symbol);
             int qty = p.getInvestedQuantity(symbol);
-            if(am / qty * 1.05 < price) {
+            if(am / qty * (1 + TARGET_PERCENT / 100.0) < price) {
                 double profit = price * qty - am;
                 if(maxProfit < profit) {
                     maxProfit = profit;
@@ -279,6 +285,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         final Set<String> symbols = p.getInvestments().stream().map(Investment::getStockSymbol).collect(Collectors.toSet());
         for (String symbol : symbols) {
             if (avgNeeded(p, curDate, symbol)) {
+                LOGGER.info("AVG needed in {}", symbol);
                 purchase(p, symbol, curDate, dailyFund);
                 return;
             }
@@ -383,5 +390,128 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         }
 
 
+    }
+
+    public List<FundInfo> select(List<FundInfo> allFunds) {
+        List<Fund> fundList = new ArrayList<>();
+        for (var info : allFunds) {
+            final List<FundHistory> history = dataProvider.getHistory(info.getSymbol(), LocalDate.now(), 30);
+            final List<Bar> bars = history.stream()
+                    .sorted(Comparator.comparing(FundHistory::getDate))
+                    .map(this::toBar).collect(Collectors.toList());
+            BarSeries series = new BaseBarSeriesBuilder().withName(info.getSymbol()).withBars(bars)
+                    .build();
+            Rule r = NumericIndicator.volume(series).isGreaterThan(MIN_VOLUME);
+            if(r.isSatisfied(series.getEndIndex())) {
+                fundList.add(new Fund(info, series));
+            }
+        }
+        fundList.sort(Comparator.comparing(i -> i.per.getValue(i.per.getBarSeries().getEndIndex())));
+        for (var i : fundList) {
+            final int index = i.per.getBarSeries().getEndIndex();
+            LOGGER.info(String.format("| %-10s | %8.2f | %8.2f | %6.2f | %7.4f%%", i.info.getSymbol(),
+                    i.close.getValue(index).doubleValue(), i.sma.getValue(index).doubleValue(),
+                    i.diff.getValue(index).doubleValue(), i.per.getValue(index).doubleValue()));
+        }
+        return fundList.stream().map(f->f.info).limit(MAX_SELECTION).collect(Collectors.toList());
+    }
+
+    public void simulate() {
+        List<Fund> fundList = new ArrayList<>();
+        Predicate<FundInfo> p = e->true;
+        for (String asset : List.of("GOLD", "SILVER", "LIQUID", "GSEC", "GILT")) {
+            Predicate<FundInfo> e = f->f.getName().toUpperCase().contains(asset);
+            e = e.or(f->f.getSymbol().contains(asset));
+            p = p.and(e.negate());
+        }
+        StopWatch watch = new StopWatch("Report");
+        watch.start("Load Etf");
+        final List<FundInfo> allFunds = dataProvider.getAllFunds(FundType.ETF).stream().filter(p).collect(Collectors.toList());
+        //final List<FundInfo> allFunds = getStocks();
+        watch.stop();
+        for (var info : allFunds) {
+            watch.start("history load");
+            final List<FundHistory> history = dataProvider.getHistory(info.getSymbol(), LocalDate.now(), 30);
+            watch.stop();
+            watch.start("bar creation");
+            final List<Bar> bars = history.stream()
+                    .sorted(Comparator.comparing(FundHistory::getDate))
+                    .map(this::toBar).collect(Collectors.toList());
+            watch.stop();
+            watch.start("strategy creation");
+            BarSeries series = new BaseBarSeriesBuilder().withName(info.getSymbol()).withBars(bars)
+                    .build();
+            Rule r = NumericIndicator.volume(series).isGreaterThan(0);
+            if(r.isSatisfied(series.getEndIndex())) {
+                fundList.add(new Fund(info, series));
+            }
+            watch.stop();
+        }
+        watch.start("exec");
+        fundList.sort(Comparator.comparing(i -> i.per.getValue(i.per.getBarSeries().getEndIndex())));
+        watch.stop();
+        watch.start("print");
+        for (var i : fundList) {
+            final int index = i.per.getBarSeries().getEndIndex();
+            LOGGER.info(String.format("| %-10s | %8.2f | %8.2f | %6.2f | %7.4f%%", i.info.getSymbol(),
+                    i.close.getValue(index).doubleValue(), i.sma.getValue(index).doubleValue(),
+                    i.diff.getValue(index).doubleValue(), i.per.getValue(index).doubleValue()));
+        }
+        watch.stop();
+        LOGGER.info("Performance {}", prettyPrint(watch));
+    }
+
+    public String prettyPrint(StopWatch watch) {
+        StringBuilder sb = new StringBuilder(watch.shortSummary());
+        sb.append('\n');
+        sb.append("---------------------------------------------\n");
+        sb.append("ns         %     Task name\n");
+        sb.append("---------------------------------------------\n");
+        NumberFormat nf = NumberFormat.getNumberInstance();
+        nf.setMinimumIntegerDigits(9);
+        nf.setGroupingUsed(false);
+        NumberFormat pf = NumberFormat.getPercentInstance();
+        pf.setMinimumIntegerDigits(3);
+        pf.setGroupingUsed(false);
+        final Map<String, Long> collect = Arrays.stream(watch.getTaskInfo()).collect(Collectors.groupingBy(StopWatch.TaskInfo::getTaskName, Collectors.mapping(StopWatch.TaskInfo::getTimeNanos, Collectors.reducing(0L, Long::sum))));
+        for(Map.Entry<String, Long> e: collect.entrySet()) {
+            sb.append(nf.format(e.getValue())).append("  ");
+            sb.append(pf.format((double)e.getValue() / (double)watch.getTotalTimeNanos())).append("  ");
+            sb.append(e.getKey()).append('\n');
+        }
+
+        return sb.toString();
+    }
+
+    private static class Fund {
+        FundInfo info;
+        NumericIndicator close;
+        NumericIndicator sma;
+        NumericIndicator diff;
+        NumericIndicator per;
+
+        public Fund(FundInfo info, BarSeries series) {
+            var close = NumericIndicator.closePrice(series);
+            var sma = close.sma(20).previous(1);
+            var diff = close.minus(sma);
+            var indicator = diff.multipliedBy(100).dividedBy(sma);
+            this.info = info;
+            this.close = close;
+            this.sma = sma;
+            this.diff = diff;
+            this.per = indicator;
+        }
+    }
+
+    private Bar toBar(FundHistory history) {
+        return BaseBar.builder(DecimalNum::valueOf, Double.class)
+                .timePeriod(Duration.ofDays(1))
+                .endTime(history.getDate().atStartOfDay(ZoneId.systemDefault()))
+                .openPrice(history.getOpeningPrice())
+                .closePrice(history.getClosingPrice())
+                .highPrice(history.getHighPrice())
+                .lowPrice(history.getLowPrice())
+                .volume(Long.valueOf(history.getVolume()).doubleValue())
+                .build();
     }
 }

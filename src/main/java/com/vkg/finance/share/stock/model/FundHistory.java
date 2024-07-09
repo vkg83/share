@@ -1,7 +1,7 @@
 package com.vkg.finance.share.stock.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -34,21 +34,21 @@ public class FundHistory {
 //    mTIMESTAMP=16-May-2024
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    @JsonAlias({"CH_SYMBOL", "symbol"})
+    @JsonProperty("CH_SYMBOL")
     private String symbol;
-    @JsonAlias({"CH_OPENING_PRICE", "open"})
+    @JsonProperty("CH_OPENING_PRICE")
     private double openingPrice;
-    @JsonAlias({"CH_CLOSING_PRICE", "ltP", "lastPrice"})
+    @JsonProperty("CH_CLOSING_PRICE")
     private double closingPrice;
-    @JsonAlias({"CH_TRADE_HIGH_PRICE", "high", "dayHigh"})
+    @JsonProperty("CH_TRADE_HIGH_PRICE")
     private double highPrice;
-    @JsonAlias({"CH_TRADE_LOW_PRICE", "low", "dayLow"})
+    @JsonProperty("CH_TRADE_LOW_PRICE")
     private double lowPrice;
-    @JsonAlias({"CH_LAST_TRADED_PRICE", "ltP", "lastPrice"})
+    @JsonProperty("CH_LAST_TRADED_PRICE")
     private double lastTradedPrice;
-    @JsonAlias("CH_TIMESTAMP")
+    @JsonProperty("CH_TIMESTAMP")
     private LocalDate date;
-    @JsonAlias({"CH_TOT_TRADED_QTY", "qty", "totalTradedVolume"})
+    @JsonProperty("CH_TOT_TRADED_QTY")
     private long volume;
 
     public String getSymbol() {
@@ -97,7 +97,6 @@ public class FundHistory {
 
     public void setLastTradedPrice(double lastTradedPrice) {
         this.lastTradedPrice = lastTradedPrice;
-        this.closingPrice = lastTradedPrice;
     }
 
     public LocalDate getDate() {
