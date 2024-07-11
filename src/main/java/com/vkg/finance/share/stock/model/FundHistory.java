@@ -133,15 +133,25 @@ public class FundHistory {
     }
 
     private double getFactor(String actionStr) {
-        var p = Pattern.compile("FACE VALUE SPLIT \\(SUB-DIVISION\\) - FROM R[SE] (\\d+.?\\d*)/- PER SHARE TO R[ES] (\\d+.?\\d*)/- PER SHARE");
+        var p = Pattern.compile("\s*FACE VALUE SPLIT \\(SUB-DIVISION\\) - FROM R[EeSs] (\\d+\\.?\\d*)/?-?\s?(PER SHARE|PER UNIT)? TO R[EeSs] (\\d+\\.?\\d*)/?-?\s?(PER SHARE|PER UNIT)?\s*");
         var m = p.matcher(actionStr);
+        var p2 = Pattern.compile("\s*ADDITONAL ISSUANCE (\\d+):(\\d+)\s*");
+        var m2 = p2.matcher(actionStr);
+        var p3 = Pattern.compile(".*\sDIVIDEND\s.*");
+        var m3 = p3.matcher(actionStr);
         double factor;
         if (m.matches()) {
-            double n = Double.parseDouble(m.group(2));
+            double n = Double.parseDouble(m.group(3));
             double d = Double.parseDouble(m.group(1));
             factor = n / d;
+        } else if (m2.matches()) {
+            double n = Double.parseDouble(m2.group(2));
+            double d = Double.parseDouble(m2.group(1));
+            factor = n / d + n;
+        } else if (m3.matches()) {
+            factor = 1;
         } else {
-            throw new RuntimeException("Not able to adjust history for " + symbol + " on " + date);
+            throw new RuntimeException("Not able to adjust history for " + symbol + " on " + date + ": " + actionStr);
         }
 
         return factor;

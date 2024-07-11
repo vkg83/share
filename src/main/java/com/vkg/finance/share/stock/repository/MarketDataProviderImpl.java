@@ -127,7 +127,7 @@ public class MarketDataProviderImpl implements MarketDataProvider {
         LocalDate from = today.with(IsoFields.DAY_OF_QUARTER, 1);
         LocalDate to = today;
         List<FundHistory> historyList = new ArrayList<>();
-        for(int i = 0; i < 5; i++) {
+        for(int i = 0; i < 25; i++) { //25
             params.put("from", from.format(FORMATTER));
             params.put("to", to.format(FORMATTER));
             final AllFundHistory allFundHistory = callApi("/api/historical/cm/equity", params, AllFundHistory.class);

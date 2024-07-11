@@ -11,16 +11,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StopWatch;
 import org.ta4j.core.*;
+import org.ta4j.core.indicators.bollinger.BollingerBandFacade;
 import org.ta4j.core.indicators.numeric.NumericIndicator;
 import org.ta4j.core.num.DecimalNum;
+import org.ta4j.core.num.Num;
+import org.ta4j.core.rules.CrossedDownIndicatorRule;
+import org.ta4j.core.rules.CrossedUpIndicatorRule;
 
-import java.text.NumberFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -70,7 +73,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     @Override
     public void simulateLifoShop() {
         InvestmentProfile p = new InvestmentProfile("sim_etf");
-        p.setBalance(500000);
+        p.setBalance(400000);
 
         List<FundInfo> allFundInfos = dataProvider.getAllFunds(FundType.ETF);
 
@@ -392,114 +395,89 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
     }
 
-    public List<FundInfo> select(List<FundInfo> allFunds) {
+    public List<FundInfo> select(List<FundInfo> allFunds, Predicate<Fund> filter, Function<BarSeries, NumericIndicator> sortBy, LocalDate date) {
         List<Fund> fundList = new ArrayList<>();
         for (var info : allFunds) {
-            final List<FundHistory> history = dataProvider.getHistory(info.getSymbol(), LocalDate.now(), 30);
+            final List<FundHistory> history = dataProvider.getHistory(info.getSymbol(), date, 30);
+            if(history.size() < 20) continue;
             final List<Bar> bars = history.stream()
                     .sorted(Comparator.comparing(FundHistory::getDate))
                     .map(this::toBar).collect(Collectors.toList());
             BarSeries series = new BaseBarSeriesBuilder().withName(info.getSymbol()).withBars(bars)
                     .build();
-            Rule r = NumericIndicator.volume(series).isGreaterThan(MIN_VOLUME);
-            if(r.isSatisfied(series.getEndIndex())) {
-                fundList.add(new Fund(info, series));
-            }
+            fundList.add(new Fund(info, series, sortBy));
         }
-        fundList.sort(Comparator.comparing(i -> i.per.getValue(i.per.getBarSeries().getEndIndex())));
-        for (var i : fundList) {
-            final int index = i.per.getBarSeries().getEndIndex();
-            LOGGER.info(String.format("| %-10s | %8.2f | %8.2f | %6.2f | %7.4f%%", i.info.getSymbol(),
-                    i.close.getValue(index).doubleValue(), i.sma.getValue(index).doubleValue(),
-                    i.diff.getValue(index).doubleValue(), i.per.getValue(index).doubleValue()));
-        }
+        fundList = fundList.stream().filter(filter).sorted().collect(Collectors.toList());
+        //fundList.forEach(Fund::print);
         return fundList.stream().map(f->f.info).limit(MAX_SELECTION).collect(Collectors.toList());
     }
 
     public void simulate() {
-        List<Fund> fundList = new ArrayList<>();
-        Predicate<FundInfo> p = e->true;
+        Predicate<FundInfo> filter = i -> true;
         for (String asset : List.of("GOLD", "SILVER", "LIQUID", "GSEC", "GILT")) {
             Predicate<FundInfo> e = f->f.getName().toUpperCase().contains(asset);
             e = e.or(f->f.getSymbol().contains(asset));
-            p = p.and(e.negate());
+            filter = filter.and(e.negate());
         }
-        StopWatch watch = new StopWatch("Report");
-        watch.start("Load Etf");
-        final List<FundInfo> allFunds = dataProvider.getAllFunds(FundType.ETF).stream().filter(p).collect(Collectors.toList());
-        //final List<FundInfo> allFunds = getStocks();
-        watch.stop();
-        for (var info : allFunds) {
-            watch.start("history load");
-            final List<FundHistory> history = dataProvider.getHistory(info.getSymbol(), LocalDate.now(), 30);
-            watch.stop();
-            watch.start("bar creation");
-            final List<Bar> bars = history.stream()
-                    .sorted(Comparator.comparing(FundHistory::getDate))
-                    .map(this::toBar).collect(Collectors.toList());
-            watch.stop();
-            watch.start("strategy creation");
-            BarSeries series = new BaseBarSeriesBuilder().withName(info.getSymbol()).withBars(bars)
-                    .build();
-            Rule r = NumericIndicator.volume(series).isGreaterThan(0);
-            if(r.isSatisfied(series.getEndIndex())) {
-                fundList.add(new Fund(info, series));
-            }
-            watch.stop();
+        final List<FundInfo> allFunds = dataProvider.getAllFunds(FundType.ETF).stream().filter(filter).collect(Collectors.toList());
+
+        Predicate<Fund> p1 = f -> {
+            BollingerBandFacade fc = new BollingerBandFacade(f.series, 20, 2);
+            Rule r = NumericIndicator.volume(f.series).isGreaterThan(MIN_VOLUME)
+                    .and(new CrossedDownIndicatorRule(NumericIndicator.closePrice(f.series), fc.lower()));
+
+            return r.isSatisfied(f.series.getEndIndex());
+        };
+
+        Predicate<Fund> p2 = f -> {
+            BollingerBandFacade fc = new BollingerBandFacade(f.series, 20, 2);
+            Rule r = new CrossedUpIndicatorRule(NumericIndicator.closePrice(f.series), fc.upper());
+
+            return r.isSatisfied(f.series.getEndIndex());
+        };
+
+        Function<BarSeries, NumericIndicator> sortFn = series -> {
+            var close = NumericIndicator.closePrice(series);
+            var sma = close.sma(20);
+            var diff = close.minus(sma);
+
+            return diff.multipliedBy(100).dividedBy(sma);
+        };
+        LocalDate today = LocalDate.now();
+        LocalDate curDate = today.minusYears(1).plusDays(20);
+        while (curDate.isBefore(today)) {
+            curDate = curDate.plusDays(1);
+            if(marketConfig.isMarketClosed(curDate)) continue;
+            LOGGER.info("Date : {}", curDate);
+            final List<FundInfo> fundInfoList1 = select(allFunds, p1, sortFn, curDate);
+            final List<FundInfo> fundInfoList2 = select(allFunds, p2, sortFn, curDate);
+            LOGGER.info("{}", fundInfoList1.stream().map(FundInfo::getSymbol).collect(Collectors.joining(", ")));
+            LOGGER.info("{}", fundInfoList2.stream().map(FundInfo::getSymbol).collect(Collectors.joining(", ")));
         }
-        watch.start("exec");
-        fundList.sort(Comparator.comparing(i -> i.per.getValue(i.per.getBarSeries().getEndIndex())));
-        watch.stop();
-        watch.start("print");
-        for (var i : fundList) {
-            final int index = i.per.getBarSeries().getEndIndex();
-            LOGGER.info(String.format("| %-10s | %8.2f | %8.2f | %6.2f | %7.4f%%", i.info.getSymbol(),
-                    i.close.getValue(index).doubleValue(), i.sma.getValue(index).doubleValue(),
-                    i.diff.getValue(index).doubleValue(), i.per.getValue(index).doubleValue()));
-        }
-        watch.stop();
-        LOGGER.info("Performance {}", prettyPrint(watch));
     }
 
-    public String prettyPrint(StopWatch watch) {
-        StringBuilder sb = new StringBuilder(watch.shortSummary());
-        sb.append('\n');
-        sb.append("---------------------------------------------\n");
-        sb.append("ns         %     Task name\n");
-        sb.append("---------------------------------------------\n");
-        NumberFormat nf = NumberFormat.getNumberInstance();
-        nf.setMinimumIntegerDigits(9);
-        nf.setGroupingUsed(false);
-        NumberFormat pf = NumberFormat.getPercentInstance();
-        pf.setMinimumIntegerDigits(3);
-        pf.setGroupingUsed(false);
-        final Map<String, Long> collect = Arrays.stream(watch.getTaskInfo()).collect(Collectors.groupingBy(StopWatch.TaskInfo::getTaskName, Collectors.mapping(StopWatch.TaskInfo::getTimeNanos, Collectors.reducing(0L, Long::sum))));
-        for(Map.Entry<String, Long> e: collect.entrySet()) {
-            sb.append(nf.format(e.getValue())).append("  ");
-            sb.append(pf.format((double)e.getValue() / (double)watch.getTotalTimeNanos())).append("  ");
-            sb.append(e.getKey()).append('\n');
-        }
-
-        return sb.toString();
-    }
-
-    private static class Fund {
+    private static class Fund implements Comparable<Fund> {
         FundInfo info;
-        NumericIndicator close;
-        NumericIndicator sma;
-        NumericIndicator diff;
+        BarSeries series;
         NumericIndicator per;
 
-        public Fund(FundInfo info, BarSeries series) {
-            var close = NumericIndicator.closePrice(series);
-            var sma = close.sma(20).previous(1);
-            var diff = close.minus(sma);
-            var indicator = diff.multipliedBy(100).dividedBy(sma);
+        public Fund(FundInfo info, BarSeries series, Function<BarSeries, NumericIndicator> fn) {
+            this.series = series;
+            var indicator = fn.apply(series);
             this.info = info;
-            this.close = close;
-            this.sma = sma;
-            this.diff = diff;
             this.per = indicator;
+        }
+
+        public void print() {
+                final int index = per.getBarSeries().getEndIndex();
+                LOGGER.info(String.format("| %-10s | %7.4f%%", info.getSymbol(), per.getValue(index).doubleValue()));
+        }
+
+        @Override
+        public int compareTo(Fund o) {
+            final Num value = per.getValue(per.getBarSeries().getEndIndex());
+            final Num oValue = o.per.getValue(o.per.getBarSeries().getEndIndex());
+            return value.compareTo(oValue);
         }
     }
 

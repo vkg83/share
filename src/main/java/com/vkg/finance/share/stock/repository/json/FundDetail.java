@@ -19,7 +19,7 @@ public class FundDetail {
         history.setSymbol(symbol);
         history.setDate(date);
         history.setOpeningPrice(priceInfo.open);
-        history.setClosingPrice(priceInfo.close);
+        history.setClosingPrice(priceInfo.intraDayHighLow.get("value"));
         history.setHighPrice(priceInfo.intraDayHighLow.get("max"));
         history.setLowPrice(priceInfo.intraDayHighLow.get("min"));
         history.setLastTradedPrice(priceInfo.intraDayHighLow.get("value"));
