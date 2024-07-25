@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -33,7 +34,7 @@ public class FundManagementServiceImpl implements FundManagementService {
                 .setMinVolume(MIN_ALLOWED_VOLUME).excludeAssets("GOLD", "SILVER", "LIQUID");
         SelectionStrategy strategy = new MovingAverageStrategy(dataProvider);
         s.setNext(strategy);
-        return s.select(allFundInfos);
+        return s.select(allFundInfos, LocalDate.now());
     }
 
     public List<FundInfo> loadJwelInfo() {
@@ -43,7 +44,7 @@ public class FundManagementServiceImpl implements FundManagementService {
                 .setMinVolume(MIN_ALLOWED_VOLUME).includeAssets("GOLD", "SILVER");
         SelectionStrategy strategy = new MovingAverageStrategy(dataProvider);
         s.setNext(strategy);
-        return s.select(allFundInfos);
+        return s.select(allFundInfos, LocalDate.now());
     }
 
     public List<FundInfo> applyDarvos() {

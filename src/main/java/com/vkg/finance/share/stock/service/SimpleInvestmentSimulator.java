@@ -3,9 +3,7 @@ package com.vkg.finance.share.stock.service;
 import com.vkg.finance.share.stock.config.MarketConfig;
 import com.vkg.finance.share.stock.model.*;
 import com.vkg.finance.share.stock.repository.MarketDataProvider;
-import com.vkg.finance.share.stock.strategies.DarvosTradingStrategy;
-import com.vkg.finance.share.stock.strategies.MovingAverageStrategy;
-import com.vkg.finance.share.stock.strategies.SimpleFundSelector;
+import com.vkg.finance.share.stock.strategies.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +12,6 @@ import org.springframework.stereotype.Service;
 import org.ta4j.core.*;
 import org.ta4j.core.indicators.bollinger.BollingerBandFacade;
 import org.ta4j.core.indicators.numeric.NumericIndicator;
-import org.ta4j.core.num.DecimalNum;
-import org.ta4j.core.num.Num;
 import org.ta4j.core.rules.CrossedDownIndicatorRule;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
 
@@ -57,12 +53,11 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
-        strategy.setCurrentDate(today);
         double dailyFund = DAILY_FUND * (1 + (p.getDivestments().size() * 0.0375)/120);
 
-        boolean purchased1 = processLast(p, today, strategy.select(etfs), dailyFund);
-        boolean purchased2 = processLast(p, today, strategy.select(jwel), dailyFund);
-        boolean purchased3 = processLast(p, today, strategy.select(stocks), dailyFund);
+        boolean purchased1 = processLast(p, today, strategy.select(etfs, today), dailyFund);
+        boolean purchased2 = processLast(p, today, strategy.select(jwel, today), dailyFund);
+        boolean purchased3 = processLast(p, today, strategy.select(stocks, today), dailyFund);
 
         if (!(purchased1 || purchased2 || purchased3))
             tryAverage(p, today, dailyFund);
@@ -92,11 +87,10 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             if (marketConfig.isMarketClosed(curDate)) {
                 continue;
             }
-            strategy.setCurrentDate(curDate);
 
-            boolean purchased1 = processLast(p, curDate, strategy.select(etfs), dailyFund);
-            boolean purchased2 = processLast(p, curDate, strategy.select(jwel), dailyFund);
-            boolean purchased3 = processLast(p, curDate, strategy.select(stocks), dailyFund);
+            boolean purchased1 = processLast(p, curDate, strategy.select(etfs, curDate), dailyFund);
+            boolean purchased2 = processLast(p, curDate, strategy.select(jwel, curDate), dailyFund);
+            boolean purchased3 = processLast(p, curDate, strategy.select(stocks, curDate), dailyFund);
             if (!(purchased1 || purchased2 || purchased3))
                 tryAverage(p, curDate, dailyFund);
 
@@ -132,11 +126,10 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
             if (marketConfig.isMarketClosed(curDate)) {
                 continue;
             }
-            strategy.setCurrentDate(curDate);
 
-            boolean purchased1 = process(p, curDate, strategy.select(etfs), dailyFund);
-            boolean purchased2 = process(p, curDate, strategy.select(jwel), dailyFund);
-            boolean purchased3 = process(p, curDate, strategy.select(stocks), dailyFund);
+            boolean purchased1 = process(p, curDate, strategy.select(etfs, curDate), dailyFund);
+            boolean purchased2 = process(p, curDate, strategy.select(jwel, curDate), dailyFund);
+            boolean purchased3 = process(p, curDate, strategy.select(stocks, curDate), dailyFund);
             if (!(purchased1 || purchased2 || purchased3))
                 tryAverage(p, curDate, dailyFund);
 
@@ -148,16 +141,14 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
     private List<FundInfo> getEtfs(List<FundInfo> allFundInfos, LocalDate today) {
         return new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
                 .setMinVolume(MIN_VOLUME)
                 .excludeAssets("GOLD", "SILVER", "LIQUID", "GSEC", "GILT")
-                .select(allFundInfos);
+                .select(allFundInfos, today);
     }
 
     private List<FundInfo> getJewellery(List<FundInfo> allFundInfos, LocalDate today) {
         return new SimpleFundSelector(dataProvider)
-                .setCurrentDate(today)
-                .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos);
+                .setMinVolume(MIN_VOLUME).includeAssets("GOLD", "SILVER").select(allFundInfos, today);
     }
 
     private List<FundInfo> getStocks() {
@@ -395,45 +386,42 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
     }
 
-    public List<FundInfo> select(List<FundInfo> allFunds, Predicate<Fund> filter, Function<BarSeries, NumericIndicator> sortBy, LocalDate date) {
-        List<Fund> fundList = new ArrayList<>();
+    public List<FundInfo> select(List<FundInfo> allFunds, Predicate<FundWrapper> filter, Function<BarSeries, NumericIndicator> sortBy, LocalDate date) {
+        List<FundWrapper> fundList = new ArrayList<>();
         for (var info : allFunds) {
             final List<FundHistory> history = dataProvider.getHistory(info.getSymbol(), date, 30);
             if(history.size() < 20) continue;
             final List<Bar> bars = history.stream()
                     .sorted(Comparator.comparing(FundHistory::getDate))
-                    .map(this::toBar).collect(Collectors.toList());
+                    .map(FundHistory::toBar).collect(Collectors.toList());
             BarSeries series = new BaseBarSeriesBuilder().withName(info.getSymbol()).withBars(bars)
                     .build();
-            fundList.add(new Fund(info, series, sortBy));
+            fundList.add(new FundWrapper(info, series, sortBy));
         }
         fundList = fundList.stream().filter(filter).sorted().collect(Collectors.toList());
-        //fundList.forEach(Fund::print);
-        return fundList.stream().map(f->f.info).limit(MAX_SELECTION).collect(Collectors.toList());
+        fundList.forEach(f -> LOGGER.info("{}", f));
+        return fundList.stream().map(FundWrapper::getInfo).limit(MAX_SELECTION).collect(Collectors.toList());
     }
-
     public void simulate() {
-        Predicate<FundInfo> filter = i -> true;
-        for (String asset : List.of("GOLD", "SILVER", "LIQUID", "GSEC", "GILT")) {
-            Predicate<FundInfo> e = f->f.getName().toUpperCase().contains(asset);
-            e = e.or(f->f.getSymbol().contains(asset));
-            filter = filter.and(e.negate());
-        }
-        final List<FundInfo> allFunds = dataProvider.getAllFunds(FundType.ETF).stream().filter(filter).collect(Collectors.toList());
+        final LimitedSelection limit = new LimitedSelection(10);
+        MAStrategy strategy1 = new MAStrategy(dataProvider);
+        MAStrategy strategy2 = new MAStrategy(dataProvider);
+        simulate(strategy1.setNext(limit), strategy2.setNext(limit));
+    }
+    public void simulate(SelectionStrategy strategy1, SelectionStrategy strategy2) {
+        Predicate<FundWrapper> p1 = f -> {
+            BollingerBandFacade fc = new BollingerBandFacade(f.getSeries(), 20, 2);
+            Rule r = NumericIndicator.volume(f.getSeries()).isGreaterThan(MIN_VOLUME)
+                    .and(new CrossedDownIndicatorRule(NumericIndicator.closePrice(f.getSeries()), fc.lower()));
 
-        Predicate<Fund> p1 = f -> {
-            BollingerBandFacade fc = new BollingerBandFacade(f.series, 20, 2);
-            Rule r = NumericIndicator.volume(f.series).isGreaterThan(MIN_VOLUME)
-                    .and(new CrossedDownIndicatorRule(NumericIndicator.closePrice(f.series), fc.lower()));
-
-            return r.isSatisfied(f.series.getEndIndex());
+            return r.isSatisfied(f.getSeries().getEndIndex());
         };
 
-        Predicate<Fund> p2 = f -> {
-            BollingerBandFacade fc = new BollingerBandFacade(f.series, 20, 2);
-            Rule r = new CrossedUpIndicatorRule(NumericIndicator.closePrice(f.series), fc.upper());
+        Predicate<FundWrapper> p2 = f -> {
+            BollingerBandFacade fc = new BollingerBandFacade(f.getSeries(), 20, 2);
+            Rule r = new CrossedUpIndicatorRule(NumericIndicator.closePrice(f.getSeries()), fc.upper());
 
-            return r.isSatisfied(f.series.getEndIndex());
+            return r.isSatisfied(f.getSeries().getEndIndex());
         };
 
         Function<BarSeries, NumericIndicator> sortFn = series -> {
@@ -443,53 +431,37 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
             return diff.multipliedBy(100).dividedBy(sma);
         };
+
         LocalDate today = LocalDate.now();
         LocalDate curDate = today.minusYears(1).plusDays(20);
+        InvestmentProfile p = new InvestmentProfile("test");
+        p.setBalance(1000000);
+        final List<FundInfo> allFunds = getETFs();
         while (curDate.isBefore(today)) {
             curDate = curDate.plusDays(1);
             if(marketConfig.isMarketClosed(curDate)) continue;
             LOGGER.info("Date : {}", curDate);
-            final List<FundInfo> fundInfoList1 = select(allFunds, p1, sortFn, curDate);
-            final List<FundInfo> fundInfoList2 = select(allFunds, p2, sortFn, curDate);
-            LOGGER.info("{}", fundInfoList1.stream().map(FundInfo::getSymbol).collect(Collectors.joining(", ")));
-            LOGGER.info("{}", fundInfoList2.stream().map(FundInfo::getSymbol).collect(Collectors.joining(", ")));
+            final List<FundInfo> fundInfoList1 = strategy1.select(allFunds, curDate);//select(allFunds, p1, sortFn, curDate);
+            final List<FundInfo> fundInfoList2 = select(allFunds, p2, sortFn.andThen(s-> s.multipliedBy(-1)), curDate);
+            for(int i = 0; i < fundInfoList1.size() && i < 3; i++) {
+                dataProvider.getHistory(fundInfoList1.get(i).getSymbol(), curDate)
+                        .ifPresent(h -> p.purchase(h, 5000));
+            }
+            for(int i = 0; i < fundInfoList2.size() && i < 3; i++) {
+                dataProvider.getHistory(fundInfoList2.get(i).getSymbol(), curDate).ifPresent(p::sell);
+            }
         }
+        print(p);
     }
 
-    private static class Fund implements Comparable<Fund> {
-        FundInfo info;
-        BarSeries series;
-        NumericIndicator per;
-
-        public Fund(FundInfo info, BarSeries series, Function<BarSeries, NumericIndicator> fn) {
-            this.series = series;
-            var indicator = fn.apply(series);
-            this.info = info;
-            this.per = indicator;
+    private List<FundInfo> getETFs() {
+        Predicate<FundInfo> filter = i1 -> true;
+        for (String asset : List.of("GOLD", "SILVER", "LIQUID", "GSEC", "GILT")) {
+            Predicate<FundInfo> e = f->f.getName().toUpperCase().contains(asset);
+            e = e.or(f->f.getSymbol().contains(asset));
+            filter = filter.and(e.negate());
         }
-
-        public void print() {
-                final int index = per.getBarSeries().getEndIndex();
-                LOGGER.info(String.format("| %-10s | %7.4f%%", info.getSymbol(), per.getValue(index).doubleValue()));
-        }
-
-        @Override
-        public int compareTo(Fund o) {
-            final Num value = per.getValue(per.getBarSeries().getEndIndex());
-            final Num oValue = o.per.getValue(o.per.getBarSeries().getEndIndex());
-            return value.compareTo(oValue);
-        }
+        return dataProvider.getAllFunds(FundType.ETF).stream().filter(filter).collect(Collectors.toList());
     }
 
-    private Bar toBar(FundHistory history) {
-        return BaseBar.builder(DecimalNum::valueOf, Double.class)
-                .timePeriod(Duration.ofDays(1))
-                .endTime(history.getDate().atStartOfDay(ZoneId.systemDefault()))
-                .openPrice(history.getOpeningPrice())
-                .closePrice(history.getClosingPrice())
-                .highPrice(history.getHighPrice())
-                .lowPrice(history.getLowPrice())
-                .volume(Long.valueOf(history.getVolume()).doubleValue())
-                .build();
-    }
 }

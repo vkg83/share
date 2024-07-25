@@ -17,13 +17,11 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
     private static final Logger LOGGER = LoggerFactory.getLogger(MovingAverageStrategy.class);
 
     private final MarketDataProvider dataProvider;
-    private LocalDate currentDate;
     private int historyDays;
     private int maxResultCount;
 
     public MovingAverageStrategy(MarketDataProvider dataProvider) {
         this.dataProvider = dataProvider;
-        this.currentDate = LocalDate.now();
         this.historyDays = 20;
         this.maxResultCount = 10;
     }
@@ -32,24 +30,16 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
         this.historyDays = historyDays;
     }
 
-    public void setCurrentDate(LocalDate currentDate) {
-        this.currentDate = currentDate;
-    }
-
     public void setMaxResultCount(int maxResultCount) {
         this.maxResultCount = maxResultCount;
     }
 
     @Override
-    public List<FundInfo> execute(List<FundInfo> fundInfos) {
-        return analyzeFunds(fundInfos);
-    }
-
-    private List<FundInfo> analyzeFunds(List<FundInfo> fundInfos) {
+    public List<FundInfo> execute(List<FundInfo> fundInfos, LocalDate date) {
         List<FundWithHistory> fundAnalyses = new ArrayList<>();
         List<String> noHistorySymbols = new ArrayList<>();
         for (final FundInfo fundInfo : fundInfos) {
-            List<FundHistory> fundHistory = dataProvider.getHistory(fundInfo.getSymbol(), currentDate, historyDays + 1);
+            List<FundHistory> fundHistory = dataProvider.getHistory(fundInfo.getSymbol(), date, historyDays + 1);
             if (fundHistory.size() < historyDays + 1) {
                 noHistorySymbols.add(fundInfo.getSymbol());
                 continue;
@@ -59,7 +49,7 @@ public class MovingAverageStrategy extends AbstractSelectionStrategy {
         }
 
         if(!noHistorySymbols.isEmpty()) {
-            LOGGER.debug("No history available for {} on {}", noHistorySymbols, currentDate);
+            LOGGER.debug("No history available for {} on {}", noHistorySymbols, date);
         }
 
         fundAnalyses.sort(Comparator.comparingDouble(FundWithHistory::getPriceChangePercent));

@@ -115,9 +115,9 @@ public class InvestmentProfile {
             }
         }
 
-        if (investmentList.isEmpty()) {
-            throw new RuntimeException("No investment exists for " + history.getSymbol());
-        }
+//        if (investmentList.isEmpty()) {
+//            throw new RuntimeException("No investment exists for " + history.getSymbol());
+//        }
 
         for (Investment investment : investmentList) {
             sell(investment, history);

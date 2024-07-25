@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 
 public class Divestment {
-    public static final double STCG_TAX = 0.15;
+    public static final double STCG_TAX = 0.2;
     public static final double EDU_CESS = 1.04;
     private Investment investment;
     private double price;

@@ -17,29 +17,23 @@ public class SimpleFundSelector extends AbstractSelectionStrategy {
     private int minVolume;
     private Predicate<FundInfo> p = e->true;
     private final MarketDataProvider dataProvider;
-    private LocalDate currentDate = LocalDate.now();
 
     public SimpleFundSelector(MarketDataProvider dataProvider) {
         this.dataProvider = dataProvider;
     }
 
     @Override
-    public List<FundInfo> execute(List<FundInfo> allFundInfos) {
+    public List<FundInfo> execute(List<FundInfo> allFundInfos, LocalDate date) {
         FundHistory LOWVOL = new FundHistory();
         LOWVOL.setVolume(0);
         final List<FundInfo> fundInfos = allFundInfos.stream()
                 .filter(p)
-                .filter(i -> dataProvider.getHistory(i.getSymbol(), currentDate).orElse(LOWVOL).getVolume() >= minVolume)
+                .filter(i -> dataProvider.getHistory(i.getSymbol(), date).orElse(LOWVOL).getVolume() >= minVolume)
                 .collect(Collectors.toList());
         if (fundInfos.size() < allFundInfos.size()) {
             LOGGER.info("Ignoring {} ETFs (Volume is less than {} minimum allowed)", allFundInfos.size() - fundInfos.size(), minVolume);
         }
         return fundInfos;
-    }
-
-    public SimpleFundSelector setCurrentDate(LocalDate currentDate) {
-        this.currentDate = currentDate;
-        return this;
     }
 
     public SimpleFundSelector setMinVolume(int minVolume) {

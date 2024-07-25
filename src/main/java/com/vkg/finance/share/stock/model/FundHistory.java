@@ -2,8 +2,13 @@ package com.vkg.finance.share.stock.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.ta4j.core.Bar;
+import org.ta4j.core.BaseBar;
+import org.ta4j.core.num.DecimalNum;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
@@ -157,6 +162,17 @@ public class FundHistory {
         return factor;
     }
 
+    public Bar toBar() {
+        return BaseBar.builder(DecimalNum::valueOf, Double.class)
+                .timePeriod(Duration.ofDays(1))
+                .endTime(date.atStartOfDay(ZoneId.systemDefault()))
+                .openPrice(openingPrice)
+                .closePrice(closingPrice)
+                .highPrice(highPrice)
+                .lowPrice(lowPrice)
+                .volume(Long.valueOf(volume).doubleValue())
+                .build();
+    }
 
     @Override
     public String toString() {

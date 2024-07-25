@@ -8,6 +8,7 @@ import com.vkg.finance.share.stock.strategies.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -20,7 +21,7 @@ public class StrategyManagementServiceImpl implements StrategyManagementService 
         final List<FundInfo> allFundInfos = loadFunds(request.getSymbols());
         //implementation needed
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
-        return strategy.select(allFundInfos);
+        return strategy.select(allFundInfos, LocalDate.now());
     }
 
     private List<FundInfo> loadFunds(List<String> symbols) {
