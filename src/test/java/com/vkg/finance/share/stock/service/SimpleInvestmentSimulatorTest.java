@@ -20,6 +20,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.Comparator;
 
 @ExtendWith(SpringExtension.class)
@@ -88,9 +89,7 @@ class SimpleInvestmentSimulatorTest {
     }
 
     @Test
-    void shouldSimulateUsingTA() throws IOException {
-        final LocalDate today = LocalDate.now();
-        FileUtil.removeCurrent(cacheBasePath.resolve(today.toString()));
+    void shouldSimulateUsingTA() {
         unit.simulate();
     }
 }

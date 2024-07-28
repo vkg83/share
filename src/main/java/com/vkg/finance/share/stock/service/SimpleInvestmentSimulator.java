@@ -4,22 +4,19 @@ import com.vkg.finance.share.stock.config.MarketConfig;
 import com.vkg.finance.share.stock.model.*;
 import com.vkg.finance.share.stock.repository.MarketDataProvider;
 import com.vkg.finance.share.stock.strategies.*;
+import com.vkg.finance.share.stock.trade.PurchaseFresh;
+import com.vkg.finance.share.stock.trade.SellLastOnPercent;
+import com.vkg.finance.share.stock.trade.TradeModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
-import org.ta4j.core.*;
-import org.ta4j.core.indicators.bollinger.BollingerBandFacade;
-import org.ta4j.core.indicators.numeric.NumericIndicator;
-import org.ta4j.core.rules.CrossedDownIndicatorRule;
-import org.ta4j.core.rules.CrossedUpIndicatorRule;
 
-import java.time.*;
-import java.time.format.DateTimeFormatter;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -155,17 +152,6 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         return fundManagementService.getFundDetails().stream()
                 .filter(i -> i.getMarketCap()!=null)
                 .sorted(Comparator.comparing(FundInfo::getMarketCap).reversed()).limit(25).collect(Collectors.toList());
-    }
-
-    private static List<FundInfo> load(String... symbols) {
-        return Arrays.stream(symbols).map(SimpleInvestmentSimulator::toInfo).collect(Collectors.toList());
-    }
-
-    private static FundInfo toInfo(String symbol) {
-        FundInfo info = new FundInfo();
-        info.setSymbol(symbol);
-        info.setName(symbol);
-        return info;
     }
 
     private boolean process(InvestmentProfile p, LocalDate curDate, List<FundInfo> fundInfos, double dailyFund) {
@@ -307,34 +293,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
     }
 
     private void print(InvestmentProfile p) {
-        Map<LocalDate, List<Investment>> holdMap = p.getInvestments().stream().collect(Collectors.groupingBy(Investment::getDate));
-        Map<LocalDate, List<Investment>> investmentMap = p.getDivestments().stream().map(Divestment::getInvestment).collect(Collectors.groupingBy(Investment::getDate));
-        Map<LocalDate, List<Divestment>> divestmentMap = p.getDivestments().stream().collect(Collectors.groupingBy(Divestment::getDate));
-        Set<LocalDate> dates = new TreeSet<>(holdMap.keySet());
-        dates.addAll(investmentMap.keySet());
-        dates.addAll(divestmentMap.keySet());
-        LocalDate today = LocalDate.now();
-        for (LocalDate date : dates) {
-            LOGGER.info("Date: {}", date.format(DateTimeFormatter.ofPattern("dd-MMM-yyyy (EEE)")));
-            var bookings = divestmentMap.getOrDefault(date, List.of());
-            bookings.forEach(b -> {
-                var i = b.getInvestment();
-                var percent = b.getGrossProfit() * 100 / i.getAmount();
-                var s = String.format("%1.2f, %1.2f%%", b.getProfit(), percent);
-                LOGGER.info("\tSold {} {} {} {}", i.getQuantity(), i.getStockSymbol(), s, Period.between(i.getDate(), date));
-            });
-            var investments = holdMap.getOrDefault(date, List.of());
-            investments.forEach(i ->
-                LOGGER.info("\tHold {} {}({} * {}): {}", Period.between(i.getDate(), today), i.getStockSymbol(), i.getQuantity(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
-            );
-            investments = investmentMap.getOrDefault(date, List.of());
-            investments.forEach(i ->
-                LOGGER.info("\tPurchased {}({}): {}", i.getStockSymbol(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
-            );
-        }
-
-        var s = String.format("Balance: %8.2f, invested: %8.2f, grossProfit: %1.2f totalProfit: %7.2f, steps: %d, remaining %d", p.getBalance(), p.getInvestedAmount(), p.getGrossProfit(), p.getProfit(), p.getDivestments().size(), p.getInvestments().size());
-        LOGGER.info("Final {}", s);
+        p.print();
         LOGGER.info("Remaining: {}", p.getInvestments().stream().map(this::symbolWithProfit)
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .map(e -> String.format("%s %6.2f %%", e.getKey(),e.getValue()))
@@ -382,76 +341,32 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         if(profit > 0) {
             LOGGER.info("Notional profit {}, {}%", profit, (int )(profit * 100 / p.getInvestedAmount()));
         }
-
-
     }
 
-    public List<FundInfo> select(List<FundInfo> allFunds, Predicate<FundWrapper> filter, Function<BarSeries, NumericIndicator> sortBy, LocalDate date) {
-        List<FundWrapper> fundList = new ArrayList<>();
-        for (var info : allFunds) {
-            final List<FundHistory> history = dataProvider.getHistory(info.getSymbol(), date, 30);
-            if(history.size() < 20) continue;
-            final List<Bar> bars = history.stream()
-                    .sorted(Comparator.comparing(FundHistory::getDate))
-                    .map(FundHistory::toBar).collect(Collectors.toList());
-            BarSeries series = new BaseBarSeriesBuilder().withName(info.getSymbol()).withBars(bars)
-                    .build();
-            fundList.add(new FundWrapper(info, series, sortBy));
-        }
-        fundList = fundList.stream().filter(filter).sorted().collect(Collectors.toList());
-        fundList.forEach(f -> LOGGER.info("{}", f));
-        return fundList.stream().map(FundWrapper::getInfo).limit(MAX_SELECTION).collect(Collectors.toList());
-    }
     public void simulate() {
-        final LimitedSelection limit = new LimitedSelection(10);
-        MAStrategy strategy1 = new MAStrategy(dataProvider);
-        MAStrategy strategy2 = new MAStrategy(dataProvider);
-        simulate(strategy1.setNext(limit), strategy2.setNext(limit));
+        List<FundInfo> stocks = getETFs();
+        Simulation simulation = new Simulation(stocks, marketConfig);
+
+        simulation.setPurchaseStrategy(this::preparePurchaseModel);
+        simulation.setSellStrategy(this::prepareSellModel);
+        final LocalDate today = LocalDate.now();
+        var p = simulation.simulate(500000, today.minusYears(1), today);
+        p.print();
     }
-    public void simulate(SelectionStrategy strategy1, SelectionStrategy strategy2) {
-        Predicate<FundWrapper> p1 = f -> {
-            BollingerBandFacade fc = new BollingerBandFacade(f.getSeries(), 20, 2);
-            Rule r = NumericIndicator.volume(f.getSeries()).isGreaterThan(MIN_VOLUME)
-                    .and(new CrossedDownIndicatorRule(NumericIndicator.closePrice(f.getSeries()), fc.lower()));
 
-            return r.isSatisfied(f.getSeries().getEndIndex());
-        };
+    private TradeModel prepareSellModel(InvestmentProfile investmentProfile) {
+        SellLastOnPercent model2 = new SellLastOnPercent(investmentProfile, dataProvider, 5);
+        AbstractSelectionStrategy strategy2 = new MASaleStrategy(dataProvider);
+        model2.setStrategy(strategy2);
+        return model2;
+    }
 
-        Predicate<FundWrapper> p2 = f -> {
-            BollingerBandFacade fc = new BollingerBandFacade(f.getSeries(), 20, 2);
-            Rule r = new CrossedUpIndicatorRule(NumericIndicator.closePrice(f.getSeries()), fc.upper());
-
-            return r.isSatisfied(f.getSeries().getEndIndex());
-        };
-
-        Function<BarSeries, NumericIndicator> sortFn = series -> {
-            var close = NumericIndicator.closePrice(series);
-            var sma = close.sma(20);
-            var diff = close.minus(sma);
-
-            return diff.multipliedBy(100).dividedBy(sma);
-        };
-
-        LocalDate today = LocalDate.now();
-        LocalDate curDate = today.minusYears(1).plusDays(20);
-        InvestmentProfile p = new InvestmentProfile("test");
-        p.setBalance(1000000);
-        final List<FundInfo> allFunds = getETFs();
-        while (curDate.isBefore(today)) {
-            curDate = curDate.plusDays(1);
-            if(marketConfig.isMarketClosed(curDate)) continue;
-            LOGGER.info("Date : {}", curDate);
-            final List<FundInfo> fundInfoList1 = strategy1.select(allFunds, curDate);//select(allFunds, p1, sortFn, curDate);
-            final List<FundInfo> fundInfoList2 = select(allFunds, p2, sortFn.andThen(s-> s.multipliedBy(-1)), curDate);
-            for(int i = 0; i < fundInfoList1.size() && i < 3; i++) {
-                dataProvider.getHistory(fundInfoList1.get(i).getSymbol(), curDate)
-                        .ifPresent(h -> p.purchase(h, 5000));
-            }
-            for(int i = 0; i < fundInfoList2.size() && i < 3; i++) {
-                dataProvider.getHistory(fundInfoList2.get(i).getSymbol(), curDate).ifPresent(p::sell);
-            }
-        }
-        print(p);
+    private TradeModel preparePurchaseModel(InvestmentProfile investmentProfile) {
+        PurchaseFresh model1 = new PurchaseFresh(investmentProfile, dataProvider);
+        MAStrategy strategy1 = new MAStrategy(dataProvider);
+        final LimitedSelection limit = new LimitedSelection(10);
+        model1.setStrategy(strategy1.setNext(limit));
+        return model1;
     }
 
     private List<FundInfo> getETFs() {

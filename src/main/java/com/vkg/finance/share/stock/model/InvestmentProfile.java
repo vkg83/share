@@ -3,12 +3,17 @@ package com.vkg.finance.share.stock.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class InvestmentProfile {
+    private static final Logger LOGGER = LoggerFactory.getLogger(InvestmentProfile.class);
     private final String profileName;
     private double balance;
     private List<Investment> investments = new ArrayList<>();
@@ -170,5 +175,36 @@ public class InvestmentProfile {
     public int getInvestedQuantity(String symbol) {
         return investments.stream().filter(inv -> inv.getStockSymbol().equals(symbol))
                 .mapToInt(Investment::getQuantity).sum();
+    }
+
+    public void print() {
+        Map<LocalDate, List<Investment>> holdMap = investments.stream().collect(Collectors.groupingBy(Investment::getDate));
+        Map<LocalDate, List<Investment>> investmentMap = divestments.stream().map(Divestment::getInvestment).collect(Collectors.groupingBy(Investment::getDate));
+        Map<LocalDate, List<Divestment>> divestmentMap = divestments.stream().collect(Collectors.groupingBy(Divestment::getDate));
+        Set<LocalDate> dates = new TreeSet<>(holdMap.keySet());
+        dates.addAll(investmentMap.keySet());
+        dates.addAll(divestmentMap.keySet());
+        LocalDate today = LocalDate.now();
+        for (LocalDate date : dates) {
+            LOGGER.info("Date: {}", date.format(DateTimeFormatter.ofPattern("dd-MMM-yyyy (EEE)")));
+            var bookings = divestmentMap.getOrDefault(date, List.of());
+            bookings.forEach(b -> {
+                var i = b.getInvestment();
+                var percent = b.getGrossProfit() * 100 / i.getAmount();
+                var s = String.format("%1.2f, %1.2f%%", b.getProfit(), percent);
+                LOGGER.info("\tSold {} {} {} {}", i.getQuantity(), i.getStockSymbol(), s, Period.between(i.getDate(), date));
+            });
+            var investments = holdMap.getOrDefault(date, List.of());
+            investments.forEach(i ->
+                    LOGGER.info("\tHold {} {}({} * {}): {}", Period.between(i.getDate(), today), i.getStockSymbol(), i.getQuantity(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
+            );
+            investments = investmentMap.getOrDefault(date, List.of());
+            investments.forEach(i ->
+                    LOGGER.info("\tPurchased {}({}): {}", i.getStockSymbol(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
+            );
+        }
+
+        var s = String.format("Balance: %8.2f, invested: %8.2f, grossProfit: %1.2f totalProfit: %7.2f, steps: %d, remaining %d", getBalance(), getInvestedAmount(), getGrossProfit(), getProfit(), divestments.size(), investments.size());
+        LOGGER.info("Final {}", s);
     }
 }

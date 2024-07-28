@@ -23,4 +23,10 @@ public abstract class AbstractSelectionStrategy implements SelectionStrategy {
     }
 
     protected abstract List<FundInfo> execute(List<FundInfo> fundInfos, LocalDate date);
+
+    public static final AbstractSelectionStrategy PASS = new AbstractSelectionStrategy() {
+        protected List<FundInfo> execute(List<FundInfo> fundInfos, LocalDate date) {
+            return fundInfos;
+        }
+    };
 }
