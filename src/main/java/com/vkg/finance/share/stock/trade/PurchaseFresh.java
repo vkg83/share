@@ -4,12 +4,15 @@ import com.vkg.finance.share.stock.model.FundHistory;
 import com.vkg.finance.share.stock.model.FundInfo;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
 import com.vkg.finance.share.stock.repository.MarketDataProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 public class PurchaseFresh extends AbstractTradeModel {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PurchaseFresh.class);
 
     private final InvestmentProfile investmentProfile;
     private final MarketDataProvider dataProvider;
@@ -18,7 +21,7 @@ public class PurchaseFresh extends AbstractTradeModel {
     public PurchaseFresh(InvestmentProfile investmentProfile, MarketDataProvider dataProvider) {
         this.investmentProfile = investmentProfile;
         this.dataProvider = dataProvider;
-        this.amount = 5000;
+        this.amount = 30000;
     }
 
     @Override
@@ -45,9 +48,9 @@ public class PurchaseFresh extends AbstractTradeModel {
 
         FundHistory h = history.get();
         try {
-            investmentProfile.purchase(h, amount);
+            investmentProfile.purchase(h, amount + investmentProfile.getDivestments().size() * 350);
         } catch (Exception e) {
-            //LOGGER.warn("Skipping purchase on {}! {}", date, e.getMessage());
+            LOGGER.warn("Skipping purchase on {}! {}", date, e.getMessage());
             return false;
         }
 

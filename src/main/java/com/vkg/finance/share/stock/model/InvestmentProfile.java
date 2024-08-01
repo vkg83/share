@@ -60,7 +60,7 @@ public class InvestmentProfile {
 
     public void purchase(String symbol, LocalDate date, double price, int quantity) {
         if (balance < price * quantity) {
-            throw new RuntimeException("Not enough balance!");
+            throw new RuntimeException("Not enough balance! " + (long)balance);
         }
         balance -= price * quantity;
         Investment inv = createInvestment(date, price, quantity, symbol);

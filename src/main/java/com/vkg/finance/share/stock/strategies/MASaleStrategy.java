@@ -8,7 +8,6 @@ import org.ta4j.core.Rule;
 import org.ta4j.core.indicators.numeric.NumericIndicator;
 
 public class MASaleStrategy extends GenericSelectionStrategy {
-    public static final int MIN_VOLUME = 10000;
 
     public MASaleStrategy(MarketDataProvider dataProvider) {
         super(dataProvider);
@@ -27,8 +26,10 @@ public class MASaleStrategy extends GenericSelectionStrategy {
     @Override
     boolean isSelected(FundWrapper wrapper) {
         var close = NumericIndicator.closePrice(wrapper.getSeries());
-        //BollingerBandFacade fc = new BollingerBandFacade(wrapper.getSeries(), 20, 2);
-        Rule r = close.isGreaterThan(close.sma(20)).and(close.isLessThan(close.previous()));
+        var preClose = NumericIndicator.of(close.previous());
+        Rule r = close.isGreaterThan(close.sma(20))
+                .and(close.isLessThan(preClose))
+                .and(preClose.isLessThan(preClose.previous()));
 
         return r.isSatisfied(wrapper.getSeries().getEndIndex());
     }

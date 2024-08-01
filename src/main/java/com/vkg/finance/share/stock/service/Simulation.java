@@ -44,6 +44,12 @@ public class Simulation {
         return investmentProfile;
     }
 
+    public void simulate(InvestmentProfile investmentProfile, LocalDate date) {
+        TradeModel purchaseModel = purchaseFunction.apply(investmentProfile);
+        TradeModel sellModel = sellFunction.apply(investmentProfile);
+        simulate(date.minusDays(1), date, purchaseModel, sellModel);
+    }
+
     public void simulate(LocalDate from, LocalDate to, TradeModel purchaseModel, TradeModel sellModel) {
         LocalDate curDate = from;
 

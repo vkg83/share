@@ -5,14 +5,12 @@ import com.vkg.finance.share.stock.model.FundWrapper;
 import com.vkg.finance.share.stock.repository.MarketDataProvider;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.Rule;
-import org.ta4j.core.indicators.bollinger.BollingerBandFacade;
 import org.ta4j.core.indicators.numeric.NumericIndicator;
-import org.ta4j.core.rules.CrossedDownIndicatorRule;
 
-public class MAStrategy extends GenericSelectionStrategy {
+public class MAPurchaseStrategy extends GenericSelectionStrategy {
     public static final int MIN_VOLUME = 10000;
 
-    public MAStrategy(MarketDataProvider dataProvider) {
+    public MAPurchaseStrategy(MarketDataProvider dataProvider) {
         super(dataProvider);
     }
 
@@ -29,9 +27,10 @@ public class MAStrategy extends GenericSelectionStrategy {
     @Override
     boolean isSelected(FundWrapper wrapper) {
         var close = NumericIndicator.closePrice(wrapper.getSeries());
-        //BollingerBandFacade fc = new BollingerBandFacade(wrapper.getSeries(), 20, 2);
+        var preClose = NumericIndicator.of(close.previous());
         Rule r = NumericIndicator.volume(wrapper.getSeries()).isGreaterThan(MIN_VOLUME)
-                .and(close.isLessThan(close.sma(20))).and(close.isGreaterThan(close.previous()));
+                .and(close.isLessThan(close.sma(20))).and(close.isGreaterThan(preClose))
+                .and(preClose.isGreaterThan(preClose.previous()));
 
         return r.isSatisfied(wrapper.getSeries().getEndIndex());
     }

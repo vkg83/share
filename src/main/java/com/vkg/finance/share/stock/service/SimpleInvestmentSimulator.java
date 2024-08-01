@@ -56,8 +56,10 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         boolean purchased2 = processLast(p, today, strategy.select(jwel, today), dailyFund);
         boolean purchased3 = processLast(p, today, strategy.select(stocks, today), dailyFund);
 
-        if (!(purchased1 || purchased2 || purchased3))
+        if (!(purchased1 || purchased2 || purchased3)) {
+            LOGGER.info("Not purchased anything. So trying average");
             tryAverage(p, today, dailyFund);
+        }
 
         print(p);
     }
@@ -77,7 +79,7 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
         double dailyFund = DAILY_FUND;
-        LocalDate curDate = today.minusYears(1).minusDays(30);
+        LocalDate curDate = today.minusYears(1).plusDays(30);
         StringBuilder balStr = new StringBuilder();
         while (curDate.isBefore(today)) {
             curDate = curDate.plusDays(1);
@@ -284,12 +286,13 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
 
         final double totalCost = p.getInvestedAmount(symbol);
         final double qty = p.getInvestedQuantity(symbol);
+        final int count = p.getInvestedCount(symbol);
 
         if (qty <= 0) {
             return false;
         }
 
-        return h.getLastTradedPrice() < totalCost / qty * (1 - qty * 0.05);
+        return h.getLastTradedPrice() < totalCost / qty * (1 - count * 0.05);
     }
 
     private void print(InvestmentProfile p) {
@@ -350,23 +353,33 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         simulation.setPurchaseStrategy(this::preparePurchaseModel);
         simulation.setSellStrategy(this::prepareSellModel);
         final LocalDate today = LocalDate.now();
-        var p = simulation.simulate(500000, today.minusYears(1), today);
+        var p = simulation.simulate(500000, today.minusYears(5), today);
         p.print();
     }
 
+    public void simulateOne(InvestmentProfile profile, LocalDate date) {
+        List<FundInfo> stocks = getETFs();
+        Simulation simulation = new Simulation(stocks, marketConfig);
+
+        simulation.setPurchaseStrategy(this::preparePurchaseModel);
+        simulation.setSellStrategy(this::prepareSellModel);
+        simulation.simulate(profile, date);
+        profile.print();
+    }
+
     private TradeModel prepareSellModel(InvestmentProfile investmentProfile) {
-        SellLastOnPercent model2 = new SellLastOnPercent(investmentProfile, dataProvider, 5);
-        AbstractSelectionStrategy strategy2 = new MASaleStrategy(dataProvider);
-        model2.setStrategy(strategy2);
-        return model2;
+        SellLastOnPercent model = new SellLastOnPercent(investmentProfile, dataProvider, 3);
+        AbstractSelectionStrategy strategy = new MASaleStrategy(dataProvider);
+        model.setStrategy(strategy);
+        return model;
     }
 
     private TradeModel preparePurchaseModel(InvestmentProfile investmentProfile) {
-        PurchaseFresh model1 = new PurchaseFresh(investmentProfile, dataProvider);
-        MAStrategy strategy1 = new MAStrategy(dataProvider);
-        final LimitedSelection limit = new LimitedSelection(10);
-        model1.setStrategy(strategy1.setNext(limit));
-        return model1;
+        PurchaseFresh model = new PurchaseFresh(investmentProfile, dataProvider);
+        MAPurchaseStrategy strategy = new MAPurchaseStrategy(dataProvider);
+        final LimitedSelection limit = new LimitedSelection(5);
+        model.setStrategy(strategy.setNext(limit));
+        return model;
     }
 
     private List<FundInfo> getETFs() {
