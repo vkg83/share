@@ -287,12 +287,13 @@ public class SimpleInvestmentSimulator implements InvestmentSimulator {
         final double totalCost = p.getInvestedAmount(symbol);
         final double qty = p.getInvestedQuantity(symbol);
         final int count = p.getInvestedCount(symbol);
+        final double avgPrice = totalCost / qty;
 
         if (qty <= 0) {
             return false;
         }
 
-        return h.getLastTradedPrice() < totalCost / qty * (1 - count * 0.05);
+        return h.getLastTradedPrice() < avgPrice * (1 - count * 0.05);
     }
 
     private void print(InvestmentProfile p) {
