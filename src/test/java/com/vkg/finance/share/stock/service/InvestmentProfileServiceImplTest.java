@@ -1,18 +1,29 @@
 package com.vkg.finance.share.stock.service;
 
-import com.vkg.finance.share.stock.client.NSEJSoupClient;
 import com.vkg.finance.share.stock.repository.FileBasedFundDetailDao;
 import com.vkg.finance.share.stock.repository.FileBasedInvestmentProfileDao;
-import com.vkg.finance.share.stock.repository.MarketDataProviderImpl;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.LocalDate;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {InvestmentProfileServiceImpl.class, FileBasedInvestmentProfileDao.class, FileBasedFundDetailDao.class, MarketDataProviderImpl.class, NSEJSoupClient.class})
+@SpringBootTest(classes = {InvestmentProfileServiceImpl.class, FileBasedInvestmentProfileDao.class, FileBasedFundDetailDao.class})
+@EnableConfigurationProperties
 class InvestmentProfileServiceImplTest {
-
+    @Autowired
+    private InvestmentProfileService investmentProfileService;
+    @Test
+    void saveInvestment() {
+        var date = LocalDate.now();
+        //investmentProfileService.sellLast("NEHA_ETF_SHOP", "TITAN", date, 3720);
+        //investmentProfileService.purchase("NEHA_ETF_SHOP", "PSUBANKADD", date, 69, 73.24);
+        //investmentProfileService.purchase("NEHA_ETF_SHOP", "SILVRETF", date, 58, 86.50);
+        //investmentProfileService.purchase("NEHA_ETF_SHOP", "MARUTI", date, 1, 12177.35);
+        System.out.println("Saved");
+    }
 }
