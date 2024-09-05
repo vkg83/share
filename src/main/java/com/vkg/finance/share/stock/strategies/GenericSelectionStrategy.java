@@ -25,7 +25,7 @@ public abstract class GenericSelectionStrategy extends AbstractSelectionStrategy
         this.dataProvider = dataProvider;
     }
 
-    abstract int getHistoryDays();
+    protected abstract int getHistoryDays();
 
     @Override
     protected List<FundInfo> execute(List<FundInfo> allFunds, LocalDate date) {
@@ -47,7 +47,7 @@ public abstract class GenericSelectionStrategy extends AbstractSelectionStrategy
         return fundList.stream().map(FundWrapper::getInfo).collect(Collectors.toList());
     }
 
-    abstract boolean isSelected(FundInfo info);
-    abstract boolean isSelected(FundWrapper wrapper);
-    abstract NumericIndicator getRanker(BarSeries series);
+    protected abstract boolean isSelected(FundInfo info);
+    protected abstract boolean isSelected(FundWrapper wrapper);
+    protected abstract NumericIndicator getRanker(BarSeries series);
 }

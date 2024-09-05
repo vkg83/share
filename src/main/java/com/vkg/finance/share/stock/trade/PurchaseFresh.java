@@ -24,6 +24,12 @@ public class PurchaseFresh extends AbstractTradeModel {
         this.amount = 30000;
     }
 
+    public PurchaseFresh(InvestmentProfile investmentProfile, MarketDataProvider dataProvider, double dailyFund) {
+        this.investmentProfile = investmentProfile;
+        this.dataProvider = dataProvider;
+        this.amount = dailyFund;
+    }
+
     @Override
     protected void performTrade(List<FundInfo> source, LocalDate date) {
         tryPurchase(source, date);

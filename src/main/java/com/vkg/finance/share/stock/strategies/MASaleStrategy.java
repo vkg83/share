@@ -14,17 +14,17 @@ public class MASaleStrategy extends GenericSelectionStrategy {
     }
 
     @Override
-    int getHistoryDays() {
+    protected int getHistoryDays() {
         return 20;
     }
 
     @Override
-    boolean isSelected(FundInfo info) {
+    protected boolean isSelected(FundInfo info) {
         return true;
     }
 
     @Override
-    boolean isSelected(FundWrapper wrapper) {
+    protected boolean isSelected(FundWrapper wrapper) {
         var close = NumericIndicator.closePrice(wrapper.getSeries());
         var preClose = NumericIndicator.of(close.previous());
         Rule r = close.isGreaterThan(close.sma(20))
@@ -35,7 +35,7 @@ public class MASaleStrategy extends GenericSelectionStrategy {
     }
 
     @Override
-    NumericIndicator getRanker(BarSeries series) {
+    protected NumericIndicator getRanker(BarSeries series) {
         var close = NumericIndicator.closePrice(series);
         var sma = close.sma(20);
         var diff = sma.minus(close);
