@@ -120,9 +120,9 @@ public class InvestmentProfile {
             }
         }
 
-//        if (investmentList.isEmpty()) {
-//            throw new RuntimeException("No investment exists for " + history.getSymbol());
-//        }
+        if (investmentList.isEmpty()) {
+            throw new RuntimeException("No investment exists for " + history.getSymbol());
+        }
 
         for (Investment investment : investmentList) {
             sell(investment, history);
@@ -204,7 +204,7 @@ public class InvestmentProfile {
             );
         }
 
-        var s = String.format("Balance: %8.2f, invested: %8.2f, grossProfit: %1.2f totalProfit: %7.2f, steps: %d, remaining %d", getBalance(), getInvestedAmount(), getGrossProfit(), getProfit(), divestments.size(), investments.size());
+        var s = String.format("Balance: %8.2f, invested: %8.2f, grossProfit: %1.2f totalProfit: %7.2f, steps done: %d, steps remaining %d", getBalance(), getInvestedAmount(), getGrossProfit(), getProfit(), divestments.size(), investments.size());
         LOGGER.info("Final {}", s);
     }
 }

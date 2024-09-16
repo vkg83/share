@@ -16,7 +16,7 @@ public class PurchaseFresh extends AbstractTradeModel {
 
     private final InvestmentProfile investmentProfile;
     private final MarketDataProvider dataProvider;
-    private final double amount;
+    private double amount;
 
     public PurchaseFresh(InvestmentProfile investmentProfile, MarketDataProvider dataProvider) {
         this.investmentProfile = investmentProfile;
@@ -53,8 +53,10 @@ public class PurchaseFresh extends AbstractTradeModel {
         }
 
         FundHistory h = history.get();
+        double m = 1.022826628;
         try {
-            investmentProfile.purchase(h, amount + investmentProfile.getDivestments().size() * 350);
+            investmentProfile.purchase(h, amount);
+            amount *= m;
         } catch (Exception e) {
             LOGGER.warn("Skipping purchase on {}! {}", date, e.getMessage());
             return false;

@@ -2,7 +2,6 @@ package com.vkg.finance.share.stock.simulators;
 
 import com.vkg.finance.share.stock.config.MarketConfig;
 import com.vkg.finance.share.stock.model.FundInfo;
-import com.vkg.finance.share.stock.model.FundType;
 import com.vkg.finance.share.stock.model.FundWrapper;
 import com.vkg.finance.share.stock.model.InvestmentProfile;
 import com.vkg.finance.share.stock.repository.MarketDataProvider;
@@ -27,7 +26,6 @@ import org.ta4j.core.indicators.numeric.NumericIndicator;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,7 +33,6 @@ import java.util.stream.Collectors;
 public class RsiShopSimulator implements InvestmentSimulator {
     private static final Logger LOGGER = LoggerFactory.getLogger(RsiShopSimulator.class);
     public static final int DAILY_FUND = 5000;
-    public static final int MIN_VOLUME = 10000;
     public static final double TARGET_PERCENT = 6.28;
     public static final int MAX_SELECTION = 5;
     @Autowired
@@ -55,7 +52,8 @@ public class RsiShopSimulator implements InvestmentSimulator {
         simulation.setPurchaseStrategy(this::preparePurchaseModel);
         simulation.setSellStrategy(this::prepareSellModel);
         final LocalDate today = LocalDate.now();
-        var p = simulation.simulate(200000, today.minusYears(5), today);
+        LOGGER.info("Simulating fo last 5 years");
+        var p = simulation.simulate(1000000, today.minusYears(5), today);
         p.print();
     }
 
@@ -99,7 +97,7 @@ public class RsiShopSimulator implements InvestmentSimulator {
 
         @Override
         protected int getHistoryDays() {
-            return 20;
+            return 100;
         }
 
         @Override
@@ -131,7 +129,7 @@ public class RsiShopSimulator implements InvestmentSimulator {
 
         @Override
         protected int getHistoryDays() {
-            return 20;
+            return 100;
         }
 
         @Override
