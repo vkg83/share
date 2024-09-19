@@ -31,7 +31,7 @@ class InvestmentProfileServiceImplTest {
     void saveInvestmentVkgRSI() {
         var date = LocalDate.now();
         //investmentProfileService.sellLast("VKG_RSI_SHOP", "TITAN", date, 3720);
-        investmentProfileService.purchase("VKG_RSI_SHOP", "SBIN", date, 7, 781.05);
+        //investmentProfileService.purchase("VKG_RSI_SHOP", "SBIN", date, 7, 781.05);
         System.out.println("Saved");
     }
 }

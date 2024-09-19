@@ -22,7 +22,7 @@ public class LifoShopSimulator implements InvestmentSimulator {
     private static final Logger LOGGER = LoggerFactory.getLogger(LifoShopSimulator.class);
     public static final int DAILY_FUND = 5000;
     public static final int MIN_VOLUME = 10000;
-    public static final int TARGET_PERCENT = 10;
+    public static final double TARGET_PERCENT = 6.28;
     public static final int MAX_SELECTION = 5;
     @Autowired
     private MarketDataProvider dataProvider;
@@ -76,7 +76,7 @@ public class LifoShopSimulator implements InvestmentSimulator {
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
         double dailyFund = DAILY_FUND;
-        LocalDate curDate = today.minusYears(1).plusDays(30);
+        LocalDate curDate = today.minusYears(5).plusDays(30);
         StringBuilder balStr = new StringBuilder();
         while (curDate.isBefore(today)) {
             curDate = curDate.plusDays(1);
