@@ -34,4 +34,16 @@ class InvestmentProfileServiceImplTest {
         //investmentProfileService.purchase("VKG_RSI_SHOP", "SBIN", date, 7, 781.05);
         System.out.println("Saved");
     }
+
+    @Test
+    void printProfileForNeha() {
+        var profile = investmentProfileService.getProfile("NEHA_ETF_SHOP");
+        profile.print();
+    }
+
+    @Test
+    void printProfileForVkg() {
+        var profile = investmentProfileService.getProfile("VKG_RSI_SHOP");
+        profile.print();
+    }
 }
