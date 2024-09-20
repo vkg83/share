@@ -192,7 +192,7 @@ public class InvestmentProfile {
                 var i = b.getInvestment();
                 var percent = b.getGrossProfit() * 100 / i.getAmount();
                 var s = String.format("%1.2f, %1.2f%%", b.getProfit(), percent);
-                LOGGER.info("\tSold {} @ {} {} {} {}", i.getQuantity(),b.getPrice(), i.getStockSymbol(), s, Period.between(i.getDate(), date));
+                LOGGER.info("\tSold ({} @ {}) {} {} {}", i.getQuantity(),b.getPrice(), i.getStockSymbol(), s, Period.between(i.getDate(), date));
             });
             var investments = holdMap.getOrDefault(date, List.of());
             investments.forEach(i ->
@@ -200,7 +200,7 @@ public class InvestmentProfile {
             );
             investments = investmentMap.getOrDefault(date, List.of());
             investments.forEach(i ->
-                    LOGGER.info("\tPurchased {} @ {}({}): {}", i.getStockSymbol(), i.getQuantity(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
+                    LOGGER.info("\tPurchased {} ({} @ {}): {}", i.getStockSymbol(), i.getQuantity(), i.getPrice(), ((int)(100*i.getAmount()))/100.0)
             );
         }
 
