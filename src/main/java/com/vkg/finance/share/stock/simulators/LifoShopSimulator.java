@@ -47,7 +47,7 @@ public class LifoShopSimulator implements InvestmentSimulator {
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
-        double dailyFund = DAILY_FUND * (1 + (p.getDivestments().size() * 0.0375)/120);
+        double dailyFund = getDailyFund(p);
 
         boolean purchased1 = processLast(p, today, strategy.select(etfs, today), dailyFund);
         boolean purchased2 = processLast(p, today, strategy.select(jwel, today), dailyFund);
@@ -75,10 +75,10 @@ public class LifoShopSimulator implements InvestmentSimulator {
 
         MovingAverageStrategy strategy = new MovingAverageStrategy(dataProvider);
 
-        double dailyFund = DAILY_FUND;
         LocalDate curDate = today.minusYears(5).plusDays(30);
         StringBuilder balStr = new StringBuilder();
         while (curDate.isBefore(today)) {
+            double dailyFund = getDailyFund(p);
             curDate = curDate.plusDays(1);
             if (marketConfig.isMarketClosed(curDate)) {
                 continue;
@@ -90,15 +90,16 @@ public class LifoShopSimulator implements InvestmentSimulator {
             if (!(purchased1 || purchased2 || purchased3))
                 tryAverage(p, curDate, dailyFund);
 
-            dailyFund = DAILY_FUND * (1 + (p.getDivestments().size() * 0.0375)/120);
-
             balStr.append(" | ").append(((long) p.getBalance() * 100) / 100.0);
         }
 
         print(p);
-        LOGGER.info("New Daily Fund: {}", dailyFund);
 
         System.out.println(balStr);
+    }
+
+    private double getDailyFund(InvestmentProfile p) {
+        return DAILY_FUND * Math.pow(1.0005, p.getDivestments().size());
     }
 
     private List<FundInfo> getEtfs(List<FundInfo> allFundInfos, LocalDate today) {
