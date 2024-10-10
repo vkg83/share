@@ -3,6 +3,7 @@ package com.vkg.finance.share.stock.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.vkg.finance.share.stock.repository.MarketDataProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -207,4 +208,17 @@ public class InvestmentProfile {
         var s = String.format("Balance: %8.2f, invested: %8.2f, grossProfit: %1.2f totalProfit: %7.2f, steps done: %d, steps remaining %d", getBalance(), getInvestedAmount(), getGrossProfit(), getProfit(), divestments.size(), investments.size());
         LOGGER.info("Final {}", s);
     }
+
+    public void printNotional(MarketDataProvider dataProvider) {
+        LOGGER.info("Remaining: {}", investments.stream().map(i -> this.symbolWithProfit(i, dataProvider))
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                .map(e -> String.format("%s %6.2f %%", e.getKey(),e.getValue()))
+                .collect(Collectors.joining(" | ")));
+    }
+
+    private Map.Entry<String, Double> symbolWithProfit(Investment investment, MarketDataProvider dataProvider) {
+        double p = dataProvider.getHistory(investment.getStockSymbol(), LocalDate.now()).map(FundHistory::getLastTradedPrice).orElse(0.0);
+        return new AbstractMap.SimpleImmutableEntry<>(investment.getStockSymbol(), (p - investment.getPrice()) * 100/ investment.getPrice());
+    }
+
 }

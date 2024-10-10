@@ -58,7 +58,8 @@ public class LifoShopSimulator implements InvestmentSimulator {
             tryAverage(p, today, dailyFund);
         }
 
-        print(p);
+        p.print();
+        p.printNotional(dataProvider);
     }
 
     @Override
@@ -93,7 +94,8 @@ public class LifoShopSimulator implements InvestmentSimulator {
             balStr.append(" | ").append(((long) p.getBalance() * 100) / 100.0);
         }
 
-        print(p);
+        p.print();
+        p.printNotional(dataProvider);
 
         System.out.println(balStr);
     }
@@ -224,18 +226,4 @@ public class LifoShopSimulator implements InvestmentSimulator {
 
         return h.getLastTradedPrice() < avgPrice * (1 - count * 0.05);
     }
-
-    private void print(InvestmentProfile p) {
-        p.print();
-        LOGGER.info("Remaining: {}", p.getInvestments().stream().map(this::symbolWithProfit)
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .map(e -> String.format("%s %6.2f %%", e.getKey(),e.getValue()))
-                .collect(Collectors.joining(" | ")));
-    }
-
-    private Map.Entry<String, Double> symbolWithProfit(Investment investment) {
-        double p = dataProvider.getHistory(investment.getStockSymbol(), LocalDate.now()).map(FundHistory::getLastTradedPrice).orElse(0.0);
-        return new AbstractMap.SimpleImmutableEntry<>(investment.getStockSymbol(), (p - investment.getPrice()) * 100/ investment.getPrice());
-    }
-
 }
