@@ -24,6 +24,7 @@ public class FileBasedInvestmentProfileDao implements InvestmentProfileDao {
         Path profilePath = getProfilePath(profile.getProfileName());
         try {
             FileUtil.saveToFile(profilePath, profile);
+            LOGGER.debug("Saved profile {} to {}", profile.getProfileName(), profilePath);
         } catch (IOException e) {
             throw new RuntimeException("Not able to save profile", e);
         }
@@ -33,6 +34,7 @@ public class FileBasedInvestmentProfileDao implements InvestmentProfileDao {
     public InvestmentProfile load(String profileName) {
         Path profilePath = getProfilePath(profileName);
         try {
+            LOGGER.debug("Loading profile {} from {}", profileName, profilePath);
             return FileUtil.loadFromFile(profilePath, InvestmentProfile.class);
         } catch (FileNotFoundException e) {
             return null;
