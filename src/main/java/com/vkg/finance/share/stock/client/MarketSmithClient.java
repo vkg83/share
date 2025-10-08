@@ -35,20 +35,21 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
 
     @Override
     public List<StockInfo> scrap() {
-        WebDriver driver = getWebDriver();
-        List<StockInfo> list = new ArrayList<>();
-        for (int i = 0; i < symbols.size(); i++) {
-            var symbol = symbols.get(i);
-            symbol = BSE_TO_NSE.getOrDefault(symbol, symbol);
-            try {
-                var info = fetchInfo(driver, symbol);
-                list.add(info);
-                LOGGER.info("Processed ({}/{}): {}", i + 1, symbols.size(), symbol);
-            } catch (Exception e) {
-                ignored.put(symbol, e.getMessage());
+        var list = WebBrowser.execute(driver -> {
+            List<StockInfo> infoList = new ArrayList<>();
+            for (int i = 0; i < symbols.size(); i++) {
+                var symbol = symbols.get(i);
+                symbol = BSE_TO_NSE.getOrDefault(symbol, symbol);
+                try {
+                    var info = fetchInfo(driver, symbol);
+                    infoList.add(info);
+                    LOGGER.info("Processed ({}/{}): {} - {}", i + 1, symbols.size(), symbol, info.getAverageVolume());
+                } catch (Exception e) {
+                    ignored.put(symbol, e.getMessage());
+                }
             }
-        }
-        driver.close();
+            return infoList;
+        });
 
         if (!ignored.isEmpty()) {
             LOGGER.warn("Failed for {}: {}", ignored.size(), ignored.keySet());
@@ -90,8 +91,16 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         info.setNetMargin(findRatio(driver.findElement(By.id("keyRatioTable"))));
         var els = driver.findElements(By.cssSelector("#redFlags_placeholder td.surveillanceflag > i.redFlag"));
         info.setRedFlags(els.size());
-
+        info.setAverageVolume(find50SmaVolume(driver));
         return info;
+    }
+
+    private BigDecimal find50SmaVolume(WebDriver driver) {
+        WebElement btn = driver.findElement(By.id("enlargeBtnClick"));
+        btn.click();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        var el = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div[@id=\"enlargeGraphHeaderInfo\"]/div/div[3]/div[2]/div/div[2]/p[1]")));
+        return getBigDecimal(el.getText());
     }
 
     @NotNull

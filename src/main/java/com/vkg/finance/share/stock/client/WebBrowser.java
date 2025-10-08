@@ -15,7 +15,6 @@ public class WebBrowser {
             return fn.apply(webDriver);
         } finally {
             if (webDriver != null) {
-                webDriver.close();
                 webDriver.quit();
             }
         }

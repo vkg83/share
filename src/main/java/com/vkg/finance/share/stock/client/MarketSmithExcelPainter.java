@@ -8,22 +8,21 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MarketSmithExcelPainter {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketSmithExcelPainter.class);
     public static final Path TEMPLATE = Path.of("C:\\Users\\ADMIN\\Documents\\Weekly Analysis Template.xlsx");
     public static final Path GROUP_FILE = Path.of("C:\\Users\\ADMIN\\Downloads\\industryGroupList.csv");
-    private final Path outputPath;
+    public static final String FUNDAMENTALS_RANK = "Fundamentals Rank";
+    public static final String FUNDAMENTALS = "Fundamentals";
+    private final Path filePath;
     private CellStyle colorStyle;
     private Map<String, Group> groupMap;
 
-    public MarketSmithExcelPainter(Path outputPath) {
-        this.outputPath = outputPath;
+    public MarketSmithExcelPainter(Path filePath) {
+        this.filePath = filePath;
         loadGroups();
     }
 
@@ -44,16 +43,16 @@ public class MarketSmithExcelPainter {
     public void writeFile(List<StockInfo> list) {
         try (var is = new FileInputStream(TEMPLATE.toFile());
              var wb = WorkbookFactory.create(is);
-             var os = new FileOutputStream(outputPath.toFile())) {
+             var os = new FileOutputStream(filePath.toFile())) {
             colorStyle = wb.createCellStyle();
             colorStyle.setFillForegroundColor(IndexedColors.LIGHT_ORANGE.getIndex());
             colorStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
-            var sheet = wb.getSheet("Fundamentals");
+            var sheet = wb.getSheet(FUNDAMENTALS);
             fillSheet(sheet, list);
-            var rSheet = wb.getSheet("Fundamentals Rank");
+            var rSheet = wb.getSheet(FUNDAMENTALS_RANK);
             fillRankSheet(rSheet, list);
             wb.write(os);
-            LOGGER.info("Created excel: {}", outputPath);
+            LOGGER.info("Created excel: {}", filePath);
         } catch (Exception ex) {
             LOGGER.error("Not able to create excel", ex);
             throw new RuntimeException(ex);
@@ -123,6 +122,7 @@ public class MarketSmithExcelPainter {
         fillCell(row, ++colNum, info.getEpsStrength());
         fillCell(row, ++colNum, info.getBuyerDemand());
         fillCell(row, ++colNum, info.getMasterScore());
+        fillCell(row, ++colNum, info.getAverageVolume());
     }
 
     private void addStyle(Cell cell) {
@@ -180,5 +180,27 @@ public class MarketSmithExcelPainter {
             cell.setCellValue(value);
         }
         return cell;
+    }
+
+    public List<StockInfo> readFile() {
+        List<StockInfo> stockInfos = new ArrayList<>();
+        try(var is = new FileInputStream(filePath.toFile());
+            var wb = WorkbookFactory.create(is)) {
+            Sheet sheet = wb.getSheet(FUNDAMENTALS_RANK);
+            var fmt = new DataFormatter();
+            CreationHelper creationHelper = wb.getCreationHelper();
+            var eval = creationHelper.createFormulaEvaluator();
+            for(var row: sheet) {
+                if(row.getRowNum() < 3 || row.getZeroHeight()) {
+                    continue;
+                }
+                var info = new StockInfo(fmt.formatCellValue(row.getCell(0), eval));
+                stockInfos.add(info);
+            }
+        } catch (Exception ex) {
+            LOGGER.error("Not able to read excel", ex);
+            throw new RuntimeException(ex);
+        }
+        return stockInfos;
     }
 }

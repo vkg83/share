@@ -13,11 +13,19 @@ public class Group {
     public Group(String[] line) {
         id = line[1];
         name = line[2];
-        stockCount = Integer.parseInt(line[3]);
-        currentRank = Integer.parseInt(line[4]);
-        lastWeekRank = Integer.parseInt(line[5]);
-        last3MonthRank = Integer.parseInt(line[6]);
-        last6MonthRank = Integer.parseInt(line[7]);
+        stockCount = toInt(line[3], 0);
+        currentRank = toInt(line[4], 500);
+        lastWeekRank = toInt(line[5], 500);
+        last3MonthRank = toInt(line[6], 500);
+        last6MonthRank = toInt(line[7], 500);
+    }
+
+    private static int toInt(String str, int defaultValue) {
+        try {
+            return Integer.parseInt(str);
+        } catch (Exception ex) {
+            return defaultValue;
+        }
     }
 
     public String getId() {

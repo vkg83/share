@@ -19,6 +19,7 @@ public class StockInfo {
     private BigDecimal masterScore;
     private int redFlags;
     private String groupId;
+    private BigDecimal averageVolume;
 
     public StockInfo(String symbol) {
         this.symbol = symbol;
@@ -137,5 +138,13 @@ public class StockInfo {
     }
     public String getGroupId() {
         return groupId;
+    }
+
+    public BigDecimal getAverageVolume() {
+        return averageVolume;
+    }
+
+    public void setAverageVolume(BigDecimal averageVolume) {
+        this.averageVolume = averageVolume;
     }
 }

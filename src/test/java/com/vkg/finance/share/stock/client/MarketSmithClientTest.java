@@ -16,7 +16,7 @@ import java.util.List;
 
 class MarketSmithClientTest {
 
-    private static final String BASE_PATH = "C:\\Users\\ADMIN\\Documents\\Stock Analysis";
+    public static final String BASE_PATH = "C:\\Users\\ADMIN\\Documents\\Stock Analysis";
     public static final Path GROUP_FILE = Path.of("C:\\Users\\ADMIN\\Downloads\\industryGroupList.csv");
 
     @BeforeAll
