@@ -5,10 +5,10 @@ import java.util.List;
 
 public class StockInfo {
     private final String symbol;
-    private int epsStrength;
-    private int priceStrength;
+    private Integer epsStrength;
+    private Integer priceStrength;
     private String buyerDemand;
-    private int groupRank;
+    private Integer groupRank;
     private List<BigDecimal> yearlyEps;
     private List<BigDecimal> quarterlyEpsGrowth;
     private List<BigDecimal> quarterlySalesGrowth;
@@ -17,7 +17,7 @@ public class StockInfo {
     private BigDecimal epsStability;
     private BigDecimal roe;
     private BigDecimal masterScore;
-    private int redFlags;
+    private Integer redFlags;
     private String groupId;
     private BigDecimal averageVolume;
 
@@ -25,11 +25,11 @@ public class StockInfo {
         this.symbol = symbol;
     }
 
-    public void setEpsStrength(int epsStrength) {
+    public void setEpsStrength(Integer epsStrength) {
         this.epsStrength = epsStrength;
     }
 
-    public void setPriceStrength(int priceStrength) {
+    public void setPriceStrength(Integer priceStrength) {
         this.priceStrength = priceStrength;
     }
 
@@ -37,7 +37,7 @@ public class StockInfo {
         this.buyerDemand = buyerDemand;
     }
 
-    public void setGroupRank(int groupRank) {
+    public void setGroupRank(Integer groupRank) {
         this.groupRank = groupRank;
     }
 
@@ -101,15 +101,15 @@ public class StockInfo {
         return netMargin;
     }
 
-    public int getPriceStrength() {
+    public Integer getPriceStrength() {
         return priceStrength;
     }
 
-    public int getGroupRank() {
+    public Integer getGroupRank() {
         return groupRank;
     }
 
-    public int getEpsStrength() {
+    public Integer getEpsStrength() {
         return epsStrength;
     }
 
@@ -129,7 +129,7 @@ public class StockInfo {
         this.redFlags = redFlags;
     }
 
-    public int getRedFlags() {
+    public Integer getRedFlags() {
         return redFlags;
     }
 

@@ -1,6 +1,7 @@
 package com.vkg.finance.share.stock.client;
 
 import com.opencsv.CSVReaderBuilder;
+import com.vkg.finance.share.stock.util.NumberUtil;
 import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,21 +142,21 @@ public class MarketSmithExcelPainter {
         int rowNum = row.getRowNum() + 1;
         fillFormula(row, ++colNum, "'Fundamentals Rank'!B" + rowNum);
         var quarterlyEpsGrowth = info.getQuarterlyEpsGrowth();
-        fillCell(row, ++colNum, quarterlyEpsGrowth.get(0));
+        fillCell(row, ++colNum, quarterlyEpsGrowth.getFirst());
         fillCell(row, ++colNum, quarterlyEpsGrowth.subList(0, 3));
         fillCell(row, ++colNum, info.getEpsGrowth());
         fillCell(row, ++colNum, info.getEpsStability());
         var yearlyEps = info.getYearlyEps();
         fillCell(row, ++colNum, yearlyEps.subList(0, 3));
         fillCell(row, ++colNum, yearlyEps);
-        fillCell(row, ++colNum, Arrays.asList(quarterlyEpsGrowth.get(0), info.getEpsGrowth()));
+        fillCell(row, ++colNum, Arrays.asList(quarterlyEpsGrowth.getFirst(), info.getEpsGrowth()));
         var qtrSales = info.getQuarterlySalesGrowth();
-        fillCell(row, ++colNum, qtrSales.get(0));
+        fillCell(row, ++colNum, qtrSales.getFirst());
         fillCell(row, ++colNum, qtrSales.subList(0, 3));
         fillCell(row, ++colNum, info.getReturnOnEquity());
         var netMargin = info.getNetMargin();
         fillCell(row, ++colNum, netMargin);
-        fillCell(row, ++colNum, netMargin.get(0));
+        fillCell(row, ++colNum, netMargin.getFirst());
         fillFormula(row, ++colNum, "'Fundamentals Rank'!Q" + rowNum);
 
     }
@@ -195,6 +196,8 @@ public class MarketSmithExcelPainter {
                     continue;
                 }
                 var info = new StockInfo(fmt.formatCellValue(row.getCell(0), eval));
+                var volStr = fmt.formatCellValue(row.getCell(25));
+                info.setAverageVolume(NumberUtil.getBigDecimal(volStr));
                 stockInfos.add(info);
             }
         } catch (Exception ex) {

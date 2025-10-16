@@ -1,5 +1,6 @@
 package com.vkg.finance.share.stock.client;
 
+import com.vkg.finance.share.stock.util.NumberUtil;
 import org.jetbrains.annotations.NotNull;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -18,8 +19,6 @@ import java.util.*;
 @Component
 public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketSmithClient.class);
-    private static final Map<String, String> BSE_TO_NSE = Map.of("GVTD", "GVT&D");
-
 
     private final List<String> symbols;
     private final HashMap<String, String> ignored;
@@ -39,7 +38,6 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
             List<StockInfo> infoList = new ArrayList<>();
             for (int i = 0; i < symbols.size(); i++) {
                 var symbol = symbols.get(i);
-                symbol = BSE_TO_NSE.getOrDefault(symbol, symbol);
                 try {
                     var info = fetchInfo(driver, symbol);
                     infoList.add(info);
@@ -83,7 +81,7 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         info.setQuarterlyEpsGrowth(findQuarterly(2, el3));
         info.setQuarterlySalesGrowth(findQuarterly(4, el3));
         List<BigDecimal> masterDetails = findDetails(el2.findElement(By.id("details_placeholder_masterscore")), 0);
-        info.setMasterScore(masterDetails.get(0));
+        info.setMasterScore(masterDetails.getFirst());
         List<BigDecimal> details = findDetails(el2.findElement(By.id("details_placeholder_eps")), 0, 1, 4);
         info.setEpsGrowth(details.get(0));
         info.setEpsStability(details.get(1));
@@ -100,7 +98,7 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         btn.click();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         var el = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div[@id=\"enlargeGraphHeaderInfo\"]/div/div[3]/div[2]/div/div[2]/p[1]")));
-        return getBigDecimal(el.getText());
+        return NumberUtil.getBigDecimal(el.getText());
     }
 
     @NotNull
@@ -120,12 +118,12 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         List<BigDecimal> list = new ArrayList<>();
         for (var row : rows) {
             var cols = row.findElements(By.tagName("td"));
-            if (cols.isEmpty() || !cols.get(0).getText().contains("After Tax Margin (%)")) {
+            if (cols.isEmpty() || !cols.getFirst().getText().contains("After Tax Margin (%)")) {
                 continue;
             }
             for (int i = 1; i < cols.size(); i++) {
                 WebElement col = cols.get(i);
-                list.add(getBigDecimal(col.getText().trim()));
+                list.add(NumberUtil.getBigDecimal(col.getText().trim()));
             }
         }
         return list;
@@ -136,7 +134,7 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         List<BigDecimal> list = new ArrayList<>();
         for (int index : indices) {
             String text = rows.get(index).getText().trim();
-            list.add(getBigDecimal(text));
+            list.add(NumberUtil.getBigDecimal(text));
         }
 
         return list;
@@ -147,10 +145,10 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         List<BigDecimal> list = new ArrayList<>();
         for (var row : rows) {
             var cols = row.findElements(By.tagName("td"));
-            if (cols.isEmpty() || isNotInteger(cols.get(0).getText().trim())) {
+            if (cols.isEmpty() || NumberUtil.isNotInteger(cols.get(0).getText().trim())) {
                 continue;
             }
-            list.add(getBigDecimal(cols.get(1).getText().trim()));
+            list.add(NumberUtil.getBigDecimal(cols.get(1).getText().trim()));
         }
         return list;
     }
@@ -160,14 +158,14 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         List<BigDecimal> list = new ArrayList<>();
         for (var row : rows) {
             var cols = row.findElements(By.tagName("td"));
-            if (row.getText().isBlank() || cols.isEmpty() || isNotInteger(cols.get(0).getText().trim().substring(4))) {
+            if (row.getText().isBlank() || cols.isEmpty() || NumberUtil.isNotInteger(cols.getFirst().getText().trim().substring(4))) {
                 continue;
             }
             String value = cols.get(colIndex).getText().trim();
             if (value.endsWith("%")) {
                 value = value.substring(0, value.length() - 1);
             }
-            list.add(getBigDecimal(value));
+            list.add(NumberUtil.getBigDecimal(value));
         }
         return list;
     }
@@ -176,24 +174,9 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         return el.findElement(By.xpath("//div[@data-target='#" + var + "']/h3/span[last()]")).getText();
     }
 
-    private static int getInt(WebElement el, String var) {
-        return Integer.parseInt(getText(el, var));
+    private static Integer getInt(WebElement el, String var) {
+        return NumberUtil.parseInt(getText(el, var));
     }
 
-    private static boolean isNotInteger(String value) {
-        try {
-            Integer.parseInt(value);
-        } catch (Exception ex) {
-            return true;
-        }
-        return false;
-    }
 
-    private static BigDecimal getBigDecimal(String value) {
-        if (value == null || value.isBlank() || "N/A".equals(value)) {
-            return null;
-        }
-        value = value.endsWith("%") ? value.substring(0, value.length() - 1) : value;
-        return new BigDecimal(value.replaceAll(",", ""));
-    }
 }

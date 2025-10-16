@@ -18,6 +18,7 @@ import java.util.List;
 @Component
 public class ChartInkClient implements WebScrapper<List<String>> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChartInkClient.class);
+    private static final String CHARTINK_URL = "https://chartink.com/screener/";
     private static final By COPY_BUTTON = By.xpath("//div/span[text()='Copy']");
     private static final By TABLE_BUTTON = By.xpath("//div/span//span[text()='table']");
     private static final By TABLE = By.xpath("//table/tbody/tr/td/span[text()='1']");
@@ -35,7 +36,7 @@ public class ChartInkClient implements WebScrapper<List<String>> {
             Toolkit toolkit = Toolkit.getDefaultToolkit();
             Clipboard clipboard = toolkit.getSystemClipboard();
             clipboard.setContents(new StringSelection(""), null);
-            String url = "https://chartink.com/screener/" + scanName;
+            String url = CHARTINK_URL + scanName;
             driver.get(url);
             var wait = new WebDriverWait(driver, Duration.ofSeconds(10));
             wait.until(ExpectedConditions.visibilityOfElementLocated(TABLE));
