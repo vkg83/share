@@ -15,7 +15,7 @@ public class WhatsappClient implements Listener {
     Whatsapp whatsapp;
 
     public void init() throws ExecutionException, InterruptedException {
-        System.out.println("Initiating Connection");
+        LOGGER.info("Initiating Connection");
         var builder = Whatsapp.webBuilder().newConnection(PhoneNumber.ofNullable(919766045435L));
         builder.historySetting(WebHistorySetting.standard(true));
         builder.errorHandler(((whatsapp, location, th) -> {
