@@ -18,12 +18,15 @@ class MarketSmithClientTest {
 
     public static final String BASE_PATH = "C:\\Users\\ADMIN\\Documents\\Stock Analysis";
     public static final Path GROUP_FILE = Path.of("C:\\Users\\ADMIN\\Downloads\\industryGroupList.csv");
+    private static List<String> insideBar;
 
     @BeforeAll
     static void checkGroupFileDate() throws IOException {
         var time = Files.getLastModifiedTime(GROUP_FILE);
         var fileDate = time.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         Assertions.assertEquals(LocalDate.now(), fileDate,"Group File is not up-to-date");
+        var chartInk = new ChartInkClient("super-performance-stocks-inside-bar");
+        insideBar = chartInk.scrap().stream().map(ChartInkModel::getSymbol).toList();
     }
 
     @ParameterizedTest
@@ -43,7 +46,7 @@ class MarketSmithClientTest {
             "rsi-crossover-28043067,Rsi Crossover"})
     void shouldPaintChartInkAnalysisData(String scanName, String filePrefix) {
         var chartInk = new ChartInkClient(scanName);
-        var symbols = chartInk.scrap();
+        var symbols = chartInk.scrap().stream().map(ChartInkModel::getSymbol).toList();
         List<StockInfo> info = getStockInfos(symbols);
 
         var outputPath = Path.of(BASE_PATH, filePrefix + " " + LocalDate.now() + ".xlsx");
@@ -62,6 +65,11 @@ class MarketSmithClientTest {
         for (var s : symbols) {
             System.out.println("Ignored: " + s);
         }
+        return info.stream().map(MarketSmithClientTest::enrichInsideBar).toList();
+    }
+
+    private static StockInfo enrichInsideBar(StockInfo info) {
+        info.setInsideBar(insideBar.contains(info.getSymbol()));
         return info;
     }
 }

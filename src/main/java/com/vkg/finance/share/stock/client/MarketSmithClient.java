@@ -41,7 +41,7 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
                 try {
                     var info = fetchInfo(driver, symbol);
                     infoList.add(info);
-                    LOGGER.info("Processed ({}/{}): {} - {}", i + 1, symbols.size(), symbol, info.getAverageVolume());
+                    LOGGER.info("Processed ({}/{}): {}", i + 1, symbols.size(), symbol);
                 } catch (Exception e) {
                     ignored.put(symbol, e.getMessage());
                 }

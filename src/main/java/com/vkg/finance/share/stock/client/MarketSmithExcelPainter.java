@@ -103,11 +103,11 @@ public class MarketSmithExcelPainter {
         fillCell(row, ++colNum, StockRanker.rank(ranker::isNetMarginAllTimeHigh));
         fillCell(row, ++colNum, StockRanker.rank(() -> ranker.isNetMarginExpanding(3)));
         fillCell(row, ++colNum, StockRanker.rankAll(() -> ranker.isNetMarginExpanding(5), () -> ranker.isNetMarginExpanding(10)));
-        var yoyExpaninding = StockRanker.rankAll(
+        var yoyExpanding = StockRanker.rankAll(
                 () -> ranker.isNetMarginYoYExpanding(3),
                 () -> ranker.isNetMarginYoYExpanding(5),
                 () -> ranker.isNetMarginYoYExpanding(10));
-        fillCell(row, ++colNum, yoyExpaninding);
+        fillCell(row, ++colNum, yoyExpanding);
         fillFormula(row, ++colNum, "COUNTIF(C" + rowNum + ":D" + rowNum + ",1) + COUNTIF(J" + rowNum + ":K" + rowNum + ", 1)");
         fillCell(row, ++colNum, info.getPriceStrength());
         fillCell(row, ++colNum, info.getGroupRank());
@@ -124,6 +124,7 @@ public class MarketSmithExcelPainter {
         fillCell(row, ++colNum, info.getBuyerDemand());
         fillCell(row, ++colNum, info.getMasterScore());
         fillCell(row, ++colNum, info.getAverageVolume());
+        fillCell(row, ++colNum, info.isInsideBar()? "Y" : "");
     }
 
     private void addStyle(Cell cell) {

@@ -20,6 +20,7 @@ public class StockInfo {
     private Integer redFlags;
     private String groupId;
     private BigDecimal averageVolume;
+    private boolean insideBar;
 
     public StockInfo(String symbol) {
         this.symbol = symbol;
@@ -146,5 +147,13 @@ public class StockInfo {
 
     public void setAverageVolume(BigDecimal averageVolume) {
         this.averageVolume = averageVolume;
+    }
+
+    public void setInsideBar(boolean insideBar) {
+        this.insideBar = insideBar;
+    }
+
+    public boolean isInsideBar() {
+        return insideBar;
     }
 }

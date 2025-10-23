@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class ChartInkClient implements WebScrapper<List<String>> {
+public class ChartInkClient implements WebScrapper<List<ChartInkModel>> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChartInkClient.class);
     private static final String CHARTINK_URL = "https://chartink.com/screener/";
     private static final By COPY_BUTTON = By.xpath("//div/span[text()='Copy']");
@@ -31,7 +31,7 @@ public class ChartInkClient implements WebScrapper<List<String>> {
     }
 
     @Override
-    public List<String> scrap() {
+    public List<ChartInkModel> scrap() {
         String clipboardText = WebBrowser.execute(driver -> {
             Toolkit toolkit = Toolkit.getDefaultToolkit();
             Clipboard clipboard = toolkit.getSystemClipboard();
@@ -57,16 +57,18 @@ public class ChartInkClient implements WebScrapper<List<String>> {
         return parse(clipboardText);
     }
 
-    private List<String> parse(String text) {
+    private List<ChartInkModel> parse(String text) {
         String[] rows = text.split("\n");
-        List<String> list = new ArrayList<>();
+        List<ChartInkModel> list = new ArrayList<>();
         for (int i = 1; i < rows.length; i++) {
             var row = rows[i];
             String[] values = row.split("\t");
-            list.add(values[2]);
+            var model = new ChartInkModel(values[2], values[5],values[6]);
+
+            list.add(model);
         }
         LOGGER.info("Found {} stocks in ChartInk Scan {}", list.size(), scanName);
-        LOGGER.info("{}", list);
+        LOGGER.info("{}", list.stream().map(ChartInkModel::getSymbol).toList());
         return list;
     }
 }
