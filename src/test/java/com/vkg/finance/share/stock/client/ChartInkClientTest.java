@@ -25,7 +25,7 @@ class ChartInkClientTest {
     @Test
     void shouldAlertForVolume() throws InterruptedException {
         var symbolMap = new HashMap<String, StockInfo>();
-        var visited = new HashSet<String>();
+        var visited = new HashMap<String, Integer>();
         symbolMap.putAll(loadSymbols("Daily Analysis"));
         symbolMap.putAll(loadSymbols("Low Liquidity Analysis"));
         System.out.println("Total " + symbolMap.size() + " symbols to alert.");
@@ -49,15 +49,20 @@ class ChartInkClientTest {
                 vol = new ArrayList<>();
             }
 
+            if (now.isAfter(start) && !vol.isEmpty()) {
+                for(var key: vol) {
+                    int count = visited.getOrDefault(key, 0);
+                    visited.put(key, count + 1);
+                    if(count == 0) {
+                        System.out.println("New: " + key);
+                    }
+                }
+            }
+
             if(!visited.isEmpty()) {
                 System.out.println("Old: " + visited);
             }
 
-            if (now.isAfter(start) && !vol.isEmpty()) {
-                System.out.println("New: " + vol);
-                vol.forEach(symbolMap::remove);
-                visited.addAll(vol);
-            }
             Thread.sleep(300000);
         }
     }
