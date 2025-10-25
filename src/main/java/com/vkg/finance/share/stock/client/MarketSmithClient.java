@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.*;
 
@@ -89,16 +90,26 @@ public class MarketSmithClient implements WebScrapper<List<StockInfo>> {
         info.setNetMargin(findRatio(driver.findElement(By.id("keyRatioTable"))));
         var els = driver.findElements(By.cssSelector("#redFlags_placeholder td.surveillanceflag > i.redFlag"));
         info.setRedFlags(els.size());
-        info.setAverageVolume(find50SmaVolume(driver));
+        var elVol = driver.findElement(By.id("company_header_volume_placeholder"));
+        BigDecimal volume = findNumber(elVol, "h1/span[2]");
+        BigDecimal change = findNumber(elVol, "h1/span[3]");
+        BigDecimal averageVolume = calculateAverageVolume(volume, change);
+        info.setWeeklyVolume(volume);
+        info.setAverageWeeklyVolume(averageVolume);
         return info;
     }
+    private BigDecimal findNumber(WebElement el, String xpathExpression) {
+        var volEl = el.findElement(By.xpath(xpathExpression));
+        return NumberUtil.getBigDecimal(volEl.getText());
+    }
 
-    private BigDecimal find50SmaVolume(WebDriver driver) {
-        WebElement btn = driver.findElement(By.id("enlargeBtnClick"));
-        btn.click();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        var el = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div[@id=\"enlargeGraphHeaderInfo\"]/div/div[3]/div[2]/div/div[2]/p[1]")));
-        return NumberUtil.getBigDecimal(el.getText());
+    private BigDecimal calculateAverageVolume(BigDecimal volume, BigDecimal change) {
+        if(volume == null || change == null) {
+            return null;
+        }
+
+        BigDecimal ratio = change.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_EVEN);
+        return volume.divide(BigDecimal.ONE.add(ratio), RoundingMode.HALF_EVEN);
     }
 
     @NotNull

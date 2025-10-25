@@ -1,6 +1,7 @@
 package com.vkg.finance.share.stock.client;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 public class StockInfo {
@@ -15,11 +16,12 @@ public class StockInfo {
     private List<BigDecimal> netMargin;
     private BigDecimal epsGrowth;
     private BigDecimal epsStability;
-    private BigDecimal roe;
+    private BigDecimal returnOnEquity;
     private BigDecimal masterScore;
-    private Integer redFlags;
+    private int redFlags;
     private String groupId;
-    private BigDecimal averageVolume;
+    private BigDecimal weeklyVolume;
+    private BigDecimal averageWeeklyVolume;
     private boolean insideBar;
 
     public StockInfo(String symbol) {
@@ -90,12 +92,12 @@ public class StockInfo {
         return quarterlySalesGrowth;
     }
 
-    public void setReturnOnEquity(BigDecimal roe) {
-        this.roe = roe;
+    public void setReturnOnEquity(BigDecimal returnOnEquity) {
+        this.returnOnEquity = returnOnEquity;
     }
 
     public BigDecimal getReturnOnEquity() {
-        return roe;
+        return returnOnEquity;
     }
 
     public List<BigDecimal> getNetMargin() {
@@ -130,7 +132,7 @@ public class StockInfo {
         this.redFlags = redFlags;
     }
 
-    public Integer getRedFlags() {
+    public int getRedFlags() {
         return redFlags;
     }
 
@@ -141,12 +143,16 @@ public class StockInfo {
         return groupId;
     }
 
-    public BigDecimal getAverageVolume() {
-        return averageVolume;
+    public BigDecimal getAverageWeeklyVolume() {
+        return averageWeeklyVolume;
     }
 
-    public void setAverageVolume(BigDecimal averageVolume) {
-        this.averageVolume = averageVolume;
+    public BigDecimal getWeeklyVolume() {
+        return weeklyVolume;
+    }
+
+    public void setWeeklyVolume(BigDecimal weeklyVolume) {
+        this.weeklyVolume = weeklyVolume;
     }
 
     public void setInsideBar(boolean insideBar) {
@@ -155,5 +161,9 @@ public class StockInfo {
 
     public boolean isInsideBar() {
         return insideBar;
+    }
+
+    public void setAverageWeeklyVolume(BigDecimal averageWeeklyVolume) {
+        this.averageWeeklyVolume = averageWeeklyVolume;
     }
 }

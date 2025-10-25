@@ -2,10 +2,9 @@ package com.vkg.finance.share.stock.client;
 
 import org.junit.jupiter.api.Test;
 
-import java.awt.*;
 import java.math.BigDecimal;
 import java.nio.file.Path;
-import java.time.Duration;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
@@ -29,11 +28,12 @@ class ChartInkClientTest {
         symbolMap.putAll(loadSymbols("Daily Analysis"));
         symbolMap.putAll(loadSymbols("Low Liquidity Analysis"));
         System.out.println("Total " + symbolMap.size() + " symbols to alert.");
-        var start = LocalTime.of(9, 20);
+        var date = LocalDate.now();
+        var start = LocalTime.of(9, 15);
+        var end = LocalTime.of(15, 30);
         for (int i = 0; i < 100; i++) {
             List<String> vol;
             LocalTime now = LocalTime.now();
-            var mi = BigDecimal.valueOf(Duration.between(start, now).toMinutes() / 360.0);
             try {
                 vol = new ChartInkClient("super-performance-stocks-volume")
                         .scrap().stream()
@@ -41,26 +41,42 @@ class ChartInkClientTest {
                         .filter(m -> symbolMap.containsKey(m.getSymbol()))
                         .filter(m -> {
                             var sy = symbolMap.get(m.getSymbol());
-                            var v = sy.getAverageVolume().multiply(mi).longValue();
-                            return v < m.getVolume();
+                            BigDecimal avgVolume = sy.getAverageWeeklyVolume();
+                            BigDecimal existingVol = date.getDayOfWeek() == DayOfWeek.MONDAY ? BigDecimal.ZERO : sy.getWeeklyVolume();
+                            var requiredVolume = avgVolume.subtract(existingVol).longValue();
+                            long dayVolume = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY ? 0: m.getVolume();
+                            return dayVolume > requiredVolume;
                         }).map(ChartInkModel::getSymbol).toList();
             } catch (Exception ex) {
                 System.out.println("Error: "+ ex.getMessage());
                 vol = new ArrayList<>();
             }
+            List<String> newStocks = new ArrayList<>();
 
-            if (now.isAfter(start) && !vol.isEmpty()) {
+            if (now.isAfter(start.plusMinutes(5)) && !vol.isEmpty()) {
                 for(var key: vol) {
                     int count = visited.getOrDefault(key, 0);
                     visited.put(key, count + 1);
                     if(count == 0) {
-                        System.out.println("New: " + key);
+                        newStocks.add(key);
                     }
                 }
             }
 
+            if(!newStocks.isEmpty()) {
+                System.out.println("New: " + newStocks);
+            }
+
             if(!visited.isEmpty()) {
-                System.out.println("Old: " + visited);
+                var map = visited.entrySet().stream()
+                        .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+                System.out.println("Old: " + map);
+            }
+
+            if(now.isBefore(start) || now.isAfter(end)) {
+                System.out.println("Terminating...");
+                break;
             }
 
             Thread.sleep(300000);

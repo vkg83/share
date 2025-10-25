@@ -123,7 +123,8 @@ public class MarketSmithExcelPainter {
         fillCell(row, ++colNum, info.getEpsStrength());
         fillCell(row, ++colNum, info.getBuyerDemand());
         fillCell(row, ++colNum, info.getMasterScore());
-        fillCell(row, ++colNum, info.getAverageVolume());
+        fillCell(row, ++colNum, info.getAverageWeeklyVolume());
+        fillCell(row, ++colNum, info.getWeeklyVolume());
         fillCell(row, ++colNum, info.isInsideBar()? "Y" : "");
     }
 
@@ -197,8 +198,10 @@ public class MarketSmithExcelPainter {
                     continue;
                 }
                 var info = new StockInfo(fmt.formatCellValue(row.getCell(0), eval));
-                var volStr = fmt.formatCellValue(row.getCell(25));
-                info.setAverageVolume(NumberUtil.getBigDecimal(volStr));
+                var avgVolStr = fmt.formatCellValue(row.getCell(25));
+                info.setAverageWeeklyVolume(NumberUtil.getBigDecimal(avgVolStr));
+                var volStr = fmt.formatCellValue(row.getCell(26));
+                info.setWeeklyVolume(NumberUtil.getBigDecimal(volStr));
                 stockInfos.add(info);
             }
         } catch (Exception ex) {
