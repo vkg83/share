@@ -1,7 +1,10 @@
 package com.vkg.finance.share.stock.client;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.DayOfWeek;
@@ -51,6 +54,14 @@ class ChartInkClientTest {
                 System.out.println("Error: "+ ex.getMessage());
                 vol = new ArrayList<>();
             }
+
+            if(!visited.isEmpty()) {
+                var map = visited.entrySet().stream()
+                        .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+                System.out.println("Old: " + map);
+            }
+
             List<String> newStocks = new ArrayList<>();
 
             if (now.isAfter(start.plusMinutes(5)) && !vol.isEmpty()) {
@@ -64,14 +75,8 @@ class ChartInkClientTest {
             }
 
             if(!newStocks.isEmpty()) {
+                play();
                 System.out.println("New: " + newStocks);
-            }
-
-            if(!visited.isEmpty()) {
-                var map = visited.entrySet().stream()
-                        .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-                System.out.println("Old: " + map);
             }
 
             if(now.isBefore(start) || now.isAfter(end)) {
@@ -89,5 +94,16 @@ class ChartInkClientTest {
                 .collect(Collectors.toMap(StockInfo::getSymbol, Function.identity()));
         System.out.println(symbols.size() + " symbols in " + filePrefix + ": " + symbols.keySet());
         return symbols;
+    }
+
+    private static void play() {
+        var r = new ClassPathResource("sample-12s.wav");
+        try (var is = AudioSystem.getAudioInputStream(r.getInputStream())){
+            Clip clip = AudioSystem.getClip();
+            clip.open(is);
+            clip.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
