@@ -8,6 +8,7 @@ import javax.sound.sampled.Clip;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
@@ -37,6 +38,7 @@ class ChartInkClientTest {
         for (int i = 0; i < 100; i++) {
             List<String> vol;
             LocalTime now = LocalTime.now();
+            var mi = Duration.between(start, now).toMinutes() / 240.0;
             try {
                 vol = new ChartInkClient("super-performance-stocks-volume")
                         .scrap().stream()
@@ -48,7 +50,11 @@ class ChartInkClientTest {
                             BigDecimal existingVol = date.getDayOfWeek() == DayOfWeek.MONDAY ? BigDecimal.ZERO : sy.getWeeklyVolume();
                             var requiredVolume = avgVolume.subtract(existingVol).longValue();
                             long dayVolume = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY ? 0: m.getVolume();
-                            return dayVolume > requiredVolume;
+                            boolean volCrossed = dayVolume > requiredVolume || dayVolume > requiredVolume * mi;
+                            if(!volCrossed) {
+                                visited.remove(m.getSymbol());
+                            }
+                            return volCrossed;
                         }).map(ChartInkModel::getSymbol).toList();
             } catch (Exception ex) {
                 System.out.println("Error: "+ ex.getMessage());
@@ -63,7 +69,6 @@ class ChartInkClientTest {
             }
 
             List<String> newStocks = new ArrayList<>();
-
             if (now.isAfter(start.plusMinutes(5)) && !vol.isEmpty()) {
                 for(var key: vol) {
                     int count = visited.getOrDefault(key, 0);
@@ -89,7 +94,7 @@ class ChartInkClientTest {
     }
 
     private Map<String, StockInfo> loadSymbols(String filePrefix) {
-        var daPath = Path.of(MarketSmithClientTest.BASE_PATH, filePrefix + " " + LocalDate.now() + ".xlsx");
+        var daPath = Path.of(MarketSmithClientTest.BASE_PATH, filePrefix + " " + LocalDate.now().minusDays(1) + ".xlsx");
         var symbols = new MarketSmithExcelPainter(daPath).readFile().stream()
                 .collect(Collectors.toMap(StockInfo::getSymbol, Function.identity()));
         System.out.println(symbols.size() + " symbols in " + filePrefix + ": " + symbols.keySet());
