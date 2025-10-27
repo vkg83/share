@@ -17,6 +17,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 class ChartInkClientTest {
+    private final LocalDate today = LocalDate.now();
+    private final int days = DayOfWeek.SATURDAY.getValue() - today.getDayOfWeek().getValue();
+    private final LocalTime start = LocalTime.of(9, 15);
+    private final LocalTime end = LocalTime.of(15, 30);
 
     @Test
     void shouldGetChartInkData() {
@@ -32,34 +36,23 @@ class ChartInkClientTest {
         symbolMap.putAll(loadSymbols("Daily Analysis"));
         symbolMap.putAll(loadSymbols("Low Liquidity Analysis"));
         System.out.println("Total " + symbolMap.size() + " symbols to alert.");
-        var date = LocalDate.now();
-        var start = LocalTime.of(9, 15);
-        var end = LocalTime.of(15, 30);
+
         for (int i = 0; i < 100; i++) {
             List<String> vol;
             LocalTime now = LocalTime.now();
             var mi = Duration.between(start, now).toMinutes() / 240.0;
             try {
-                vol = new ChartInkClient("super-performance-stocks-volume")
-                        .scrap().stream()
+                vol = new ChartInkClient("super-performance-stocks-volume").scrap().stream()
                         .sorted(Comparator.comparing(ChartInkModel::getVolume).reversed())
                         .filter(m -> symbolMap.containsKey(m.getSymbol()))
-                        .filter(m -> {
-                            var sy = symbolMap.get(m.getSymbol());
-                            BigDecimal avgVolume = sy.getAverageWeeklyVolume();
-                            BigDecimal existingVol = date.getDayOfWeek() == DayOfWeek.MONDAY ? BigDecimal.ZERO : sy.getWeeklyVolume();
-                            var requiredVolume = avgVolume.subtract(existingVol).longValue();
-                            long dayVolume = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY ? 0: m.getVolume();
-                            boolean volCrossed = dayVolume > requiredVolume || dayVolume > requiredVolume * mi;
-                            if(!volCrossed) {
-                                visited.remove(m.getSymbol());
-                            }
-                            return volCrossed;
-                        }).map(ChartInkModel::getSymbol).toList();
+                        .filter(m -> hasCrossed(m, symbolMap.get(m.getSymbol()), mi))
+                        .map(ChartInkModel::getSymbol).toList();
             } catch (Exception ex) {
                 System.out.println("Error: "+ ex.getMessage());
                 vol = new ArrayList<>();
             }
+
+            visited.keySet().retainAll(vol);
 
             if(!visited.isEmpty()) {
                 var map = visited.entrySet().stream()
@@ -91,6 +84,15 @@ class ChartInkClientTest {
 
             Thread.sleep(300000);
         }
+    }
+
+    private boolean hasCrossed(ChartInkModel m, StockInfo stockInfo, double mi) {
+        BigDecimal averageWeeklyVolume = stockInfo.getAverageWeeklyVolume();
+        BigDecimal existingWeeklyVol = today.getDayOfWeek() == DayOfWeek.MONDAY ? BigDecimal.ZERO : stockInfo.getWeeklyVolume();
+        long remainingWeeklyVol = averageWeeklyVolume.subtract(existingWeeklyVol).longValue();
+        var avgDayVolume = remainingWeeklyVol / days;
+        long dayVolume = today.getDayOfWeek() == DayOfWeek.SATURDAY || today.getDayOfWeek() == DayOfWeek.SUNDAY ? 0: m.getVolume();
+        return dayVolume > remainingWeeklyVol || dayVolume > avgDayVolume * 1.4 || dayVolume > avgDayVolume * mi;
     }
 
     private Map<String, StockInfo> loadSymbols(String filePrefix) {
