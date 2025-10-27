@@ -94,7 +94,7 @@ class ChartInkClientTest {
     }
 
     private Map<String, StockInfo> loadSymbols(String filePrefix) {
-        var daPath = Path.of(MarketSmithClientTest.BASE_PATH, filePrefix + " " + LocalDate.now().minusDays(1) + ".xlsx");
+        var daPath = Path.of(MarketSmithClientTest.BASE_PATH, filePrefix + " " + LocalDate.now() + ".xlsx");
         var symbols = new MarketSmithExcelPainter(daPath).readFile().stream()
                 .collect(Collectors.toMap(StockInfo::getSymbol, Function.identity()));
         System.out.println(symbols.size() + " symbols in " + filePrefix + ": " + symbols.keySet());
