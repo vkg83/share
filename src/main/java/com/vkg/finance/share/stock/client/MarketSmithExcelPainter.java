@@ -82,7 +82,12 @@ public class MarketSmithExcelPainter {
 
     private void fillRankRow(Row row, StockInfo info) {
         int colNum = 0;
-        var cell = fillCell(row, colNum, info.getSymbol());
+        String symbol = info.getSymbol();
+        var cell = fillCell(row, colNum, symbol);
+        var ch = row.getSheet().getWorkbook().getCreationHelper();
+        var link = ch.createHyperlink(Hyperlink.LINK_URL);
+        link.setAddress("https://marketsmithindia.com/mstool/eval/"+symbol.toLowerCase()+"/evaluation.jsp#/");
+        cell.setHyperlink(link);
         if(info.getRedFlags() > 0) {
             addStyle(cell);
         }
@@ -117,7 +122,7 @@ public class MarketSmithExcelPainter {
             fillCell(row, ++colNum, group.getLast3MonthRank());
             fillCell(row, ++colNum, group.getLast6MonthRank());
         } else {
-            LOGGER.warn("No Industry group found with name: {} for {}", info.getGroupId(), info.getSymbol());
+            LOGGER.warn("No Industry group found with name: {} for {}", info.getGroupId(), symbol);
             colNum += 3;
         }
         fillCell(row, ++colNum, info.getEpsStrength());

@@ -43,6 +43,7 @@ class MarketSmithClientTest {
     @CsvSource({
             "super-performance-stocks-11,Daily Analysis",
             "super-performance-stocks-low-liquidity,Low Liquidity Analysis",
+            "combined-scanner-inside-bar,Combined Winners",
             "rsi-crossover-28043067,Rsi Crossover"})
     void shouldPaintChartInkAnalysisData(String scanName, String filePrefix) {
         var chartInk = new ChartInkClient(scanName);
