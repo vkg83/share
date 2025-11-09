@@ -17,14 +17,14 @@ import java.util.List;
 class MarketSmithClientTest {
 
     public static final String BASE_PATH = "C:\\Users\\ADMIN\\Documents\\Stock Analysis";
-    public static final Path GROUP_FILE = Path.of("C:\\Users\\ADMIN\\Downloads\\industryGroupList.csv");
+    private static final Path GROUP_FILE = Path.of("C:\\Users\\ADMIN\\Downloads\\industryGroupList.csv");
     private static List<String> insideBar;
 
     @BeforeAll
     static void checkGroupFileDate() throws IOException {
         var time = Files.getLastModifiedTime(GROUP_FILE);
         var fileDate = time.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        Assertions.assertEquals(LocalDate.now(), fileDate,"Group File is not up-to-date");
+        Assertions.assertEquals(LocalDate.now(), fileDate, "Group File is not up-to-date");
         var chartInk = new ChartInkClient("super-performance-stocks-inside-bar");
         insideBar = chartInk.scrap().stream().map(ChartInkModel::getSymbol).toList();
     }
