@@ -115,7 +115,7 @@ class ChartInkClientTest {
     }
 
 
-    private Map<String, StockInfo> loadSymbols(String filePrefix) {
+    private static Map<String, StockInfo> loadSymbols(String filePrefix) {
         var symbols = loadSymbols(filePrefix, LocalDate.now());
         System.out.println(symbols.size() + " symbols in " + filePrefix + ": " + symbols.keySet());
         return symbols;
