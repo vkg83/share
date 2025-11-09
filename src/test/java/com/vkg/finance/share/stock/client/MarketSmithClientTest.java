@@ -25,7 +25,7 @@ class MarketSmithClientTest {
         var time = Files.getLastModifiedTime(GROUP_FILE);
         var fileDate = time.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         Assertions.assertEquals(LocalDate.now(), fileDate, "Group File is not up-to-date");
-        var chartInk = new ChartInkClient("super-performance-stocks-inside-bar");
+        var chartInk = new ChartInkClient("inside-bar-611639");
         insideBar = chartInk.scrap().stream().map(ChartInkModel::getSymbol).toList();
     }
 
@@ -43,8 +43,7 @@ class MarketSmithClientTest {
     @CsvSource({
             "super-performance-stocks-11,Daily Analysis",
             "super-performance-stocks-low-liquidity,Low Liquidity Analysis",
-            "combined-scanner-inside-bar,Combined Winners",
-            "rsi-crossover-28043067,Rsi Crossover"})
+            "combined-scanner-inside-bar,Combined Winners"})
     void shouldPaintChartInkAnalysisData(String scanName, String filePrefix) {
         var chartInk = new ChartInkClient(scanName);
         var symbols = chartInk.scrap().stream().map(ChartInkModel::getSymbol).toList();

@@ -86,8 +86,7 @@ class ChartInkClientTest {
     @CsvSource({
             "super-performance-stocks-11,Daily Analysis",
             "super-performance-stocks-low-liquidity,Low Liquidity Analysis",
-            "combined-scanner-inside-bar,Combined Winners",
-            "rsi-crossover-28043067,Rsi Crossover"})
+            "combined-scanner-inside-bar,Combined Winners"})
     void shouldComparePreviousDay(String scanName, String filePrefix) {
         Map<String, StockInfo> prevDaySymbol = loadSymbols(filePrefix, today.minusDays(1));
         Map<String, StockInfo> infoList = loadSymbols(filePrefix, today);
