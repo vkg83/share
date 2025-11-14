@@ -100,10 +100,10 @@ class ChartInkClientTest {
 
         System.out.println(filePrefix + " (" + scanName + ")");
         if (!prevDaySymbol.isEmpty()) {
-            System.out.println("\tRemoved: " + prevDaySymbol.keySet());
+            System.out.println("\tRemoved "+prevDaySymbol.size()+": " + prevDaySymbol.keySet());
         }
         if (!newSymbols.isEmpty()) {
-            System.out.println("\tNew: " + newSymbols);
+            System.out.println("\tNew "+newSymbols.size()+": " + newSymbols);
         }
     }
 
