@@ -163,12 +163,12 @@ public class ZerodhaClient {
                 if (gtt != null) {
                     compareHoldingWithGTT(symbol, h, gtt);
                 } else if(h.quantity > 0 || h.t1Quantity > 0) {
-                    LOGGER.error("*** Holding without GTT: {}", symbol);
+                    LOGGER.warn("*** Holding without GTT: {}", symbol);
                     placeStopLoss(k, h);
                 }
             }
             if(!gttMap.isEmpty()) {
-                LOGGER.error("*** GTT without Holding: {}", gttMap.keySet());
+                LOGGER.warn("*** GTT without Holding: {}", gttMap.keySet());
                 for (var e: gttMap.entrySet()) {
                     var gtt = e.getValue();
                     k.cancelGTT(gtt.id);
@@ -208,13 +208,13 @@ public class ZerodhaClient {
 
         int quantity = h.quantity + h.t1Quantity;
         if(quantity != gttOrder.quantity) {
-            LOGGER.error("{} - GTT order {} quantity mismatched {} holding quantity", symbol, gttOrder.quantity, quantity);
+            LOGGER.error("{} - ### GTT order {} quantity mismatched {} holding quantity", symbol, gttOrder.quantity, quantity);
         }
         double stopLoss =  h.averagePrice * STOP_LOSS_PERCENT;
         if (stopLoss - gttOrder.price > 0.5) {
-            LOGGER.error("{} - GTT stop loss {} is below ideal Stop loss {}", symbol, gttOrder.price, stopLoss);
+            LOGGER.error("{} - ### GTT stop loss {} is below ideal Stop loss {}", symbol, gttOrder.price, stopLoss);
         } else if (gtt.condition.triggerValues.getFirst() - gttOrder.price < 0.5) {
-            LOGGER.error("{} - Gap expected between trigger {} and limit {}", symbol, gtt.condition.triggerValues.getFirst(), gttOrder.price);
+            LOGGER.error("{} - ### Gap expected between trigger {} and limit {}", symbol, gtt.condition.triggerValues.getFirst(), gttOrder.price);
         } else {
             double actualStopLoss = (gttOrder.price - h.averagePrice) / h.averagePrice * 100;
             LOGGER.info("{} - Stop loss {}", String.format("%-10s", symbol), String.format("%6.2f%%", actualStopLoss));
