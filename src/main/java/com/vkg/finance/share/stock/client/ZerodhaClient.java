@@ -163,12 +163,12 @@ public class ZerodhaClient {
                 if (gtt != null) {
                     compareHoldingWithGTT(symbol, h, gtt);
                 } else if(h.quantity > 0 || h.t1Quantity > 0) {
-                    LOGGER.error("Holding without GTT: {}", symbol);
+                    LOGGER.error("*** Holding without GTT: {}", symbol);
                     placeStopLoss(k, h);
                 }
             }
             if(!gttMap.isEmpty()) {
-                LOGGER.error("GTT without Holding: {}", gttMap.keySet());
+                LOGGER.error("*** GTT without Holding: {}", gttMap.keySet());
                 for (var e: gttMap.entrySet()) {
                     var gtt = e.getValue();
                     k.cancelGTT(gtt.id);
