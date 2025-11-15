@@ -217,7 +217,7 @@ public class ZerodhaClient {
             LOGGER.error("{} - Gap expected between trigger {} and limit {}", symbol, gtt.condition.triggerValues.getFirst(), gttOrder.price);
         } else {
             double actualStopLoss = (gttOrder.price - h.averagePrice) / h.averagePrice * 100;
-            LOGGER.info("{} - Stop loss {}", symbol, String.format("%.2f%%", actualStopLoss));
+            LOGGER.info("{} - Stop loss {}", String.format("%-10s", symbol), String.format("%6.2f%%", actualStopLoss));
         }
     }
 }
