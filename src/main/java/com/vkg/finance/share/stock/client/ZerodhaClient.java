@@ -2,7 +2,9 @@ package com.vkg.finance.share.stock.client;
 
 import com.zerodhatech.kiteconnect.KiteConnect;
 import com.zerodhatech.kiteconnect.kitehttp.exceptions.KiteException;
+import com.zerodhatech.kiteconnect.utils.Constants;
 import com.zerodhatech.models.GTT;
+import com.zerodhatech.models.GTTParams;
 import com.zerodhatech.models.Holding;
 import com.zerodhatech.models.User;
 import org.openqa.selenium.By;
@@ -162,14 +164,43 @@ public class ZerodhaClient {
                     compareHoldingWithGTT(symbol, h, gtt);
                 } else if(h.quantity > 0 || h.t1Quantity > 0) {
                     LOGGER.error("Holding without GTT: {}", symbol);
+                    placeStopLoss(k, h);
                 }
             }
             if(!gttMap.isEmpty()) {
                 LOGGER.error("GTT without Holding: {}", gttMap.keySet());
+                for (var e: gttMap.entrySet()) {
+                    var gtt = e.getValue();
+                    k.cancelGTT(gtt.id);
+                    LOGGER.info("Cancelled GTT {} for {}", gtt.id, e.getKey());
+                }
             }
         } catch (Exception | KiteException ex) {
             LOGGER.error("Can't fetch Holdings from Account", ex);
         }
+    }
+
+    private static void placeStopLoss(KiteConnect k, Holding h) throws IOException, KiteException {
+        GTTParams p = new GTTParams();
+        p.triggerType = Constants.SINGLE;
+        p.exchange = Constants.EXCHANGE_NSE;
+        p.tradingsymbol = getTradingSymbol(h.tradingSymbol);
+        p.lastPrice = h.lastPrice;
+
+        GTTParams.GTTOrderParams order1Params = p.new GTTOrderParams();
+        order1Params.orderType = Constants.ORDER_TYPE_LIMIT;
+        order1Params.product = Constants.PRODUCT_CNC;
+        order1Params.transactionType = Constants.TRANSACTION_TYPE_SELL;
+        order1Params.quantity = h.quantity + h.t1Quantity;
+        double stopLoss =  h.averagePrice * STOP_LOSS_PERCENT;
+        var price = Math.ceil(stopLoss);
+        order1Params.price = price;
+
+        p.orders = List.of(order1Params);
+        p.triggerPrices = List.of(price + 1);
+
+        k.placeGTT(p);
+        LOGGER.info("Stop loss GTT order placed for {}", p.tradingsymbol);
     }
 
     private static void compareHoldingWithGTT(String symbol, Holding h, GTT gtt) {
