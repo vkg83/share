@@ -125,6 +125,7 @@ public class MarketSmithExcelPainter {
             LOGGER.warn("No Industry group found with name: {} for {}", info.getGroupId(), symbol);
             colNum += 3;
         }
+        fillFormula(row, ++colNum, "AVERAGE(S"+ rowNum +":V"+rowNum+") > S"+rowNum+"* 1.2");
         fillCell(row, ++colNum, info.getEpsStrength());
         fillCell(row, ++colNum, info.getBuyerDemand());
         fillCell(row, ++colNum, info.getMasterScore());
