@@ -117,14 +117,19 @@ class ChartInkClientTest {
 
 
     private static Map<String, StockInfo> loadSymbols(String filePrefix) {
-        LocalDate now = LocalDate.now();
-        var start = now.with(TemporalAdjusters.previous(DayOfWeek.MONDAY));
+        LocalDate today = LocalDate.now();
+        var startDay = today.with(TemporalAdjusters.previous(DayOfWeek.MONDAY));
+        System.out.printf("Loading from %s to %s%n", startDay, today);
         Map<String, StockInfo> symbols = new HashMap<>();
-        while(!start.isAfter(now)) {
-            symbols.putAll(loadSymbols(filePrefix, start));
-            start = start.plusDays(1);
+        while(!startDay.isAfter(today)) {
+            try {
+                symbols.putAll(loadSymbols(filePrefix, startDay));
+            } catch (Exception ex) {
+                System.out.printf("Not loaded day %s. Reason: %s%n", startDay, ex.getMessage());
+            }
+            startDay = startDay.plusDays(1);
         }
-        System.out.println(symbols.size() + " symbols in " + filePrefix + ": " + symbols.keySet());
+        System.out.printf("%d symbols in %s: %s%n", symbols.size(), filePrefix, symbols.keySet());
         return symbols;
     }
 

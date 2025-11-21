@@ -211,7 +211,6 @@ public class MarketSmithExcelPainter {
                 stockInfos.add(info);
             }
         } catch (Exception ex) {
-            LOGGER.error("Not able to read excel", ex);
             throw new RuntimeException(ex);
         }
         return stockInfos;
