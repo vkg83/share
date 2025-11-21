@@ -8,8 +8,10 @@ import org.springframework.core.io.ClassPathResource;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import java.nio.file.Path;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
@@ -115,7 +117,13 @@ class ChartInkClientTest {
 
 
     private static Map<String, StockInfo> loadSymbols(String filePrefix) {
-        var symbols = loadSymbols(filePrefix, LocalDate.now());
+        LocalDate now = LocalDate.now();
+        var start = now.with(TemporalAdjusters.previous(DayOfWeek.MONDAY));
+        Map<String, StockInfo> symbols = new HashMap<>();
+        while(!start.isAfter(now)) {
+            symbols.putAll(loadSymbols(filePrefix, start));
+            start = start.plusDays(1);
+        }
         System.out.println(symbols.size() + " symbols in " + filePrefix + ": " + symbols.keySet());
         return symbols;
     }
