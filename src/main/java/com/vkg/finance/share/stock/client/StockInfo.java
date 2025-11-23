@@ -1,7 +1,6 @@
 package com.vkg.finance.share.stock.client;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 public class StockInfo {
@@ -23,6 +22,7 @@ public class StockInfo {
     private BigDecimal weeklyVolume;
     private BigDecimal averageWeeklyVolume;
     private boolean insideBar;
+    private boolean nearPivot;
 
     public StockInfo(String symbol) {
         this.symbol = symbol;
@@ -165,5 +165,13 @@ public class StockInfo {
 
     public void setAverageWeeklyVolume(BigDecimal averageWeeklyVolume) {
         this.averageWeeklyVolume = averageWeeklyVolume;
+    }
+
+    public boolean isNearPivot() {
+        return nearPivot;
+    }
+
+    public void setNearPivot(boolean nearPivot) {
+        this.nearPivot = nearPivot;
     }
 }

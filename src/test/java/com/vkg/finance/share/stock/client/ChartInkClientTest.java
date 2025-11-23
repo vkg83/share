@@ -7,7 +7,6 @@ import org.springframework.core.io.ClassPathResource;
 
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
-import java.nio.file.Path;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -66,6 +65,10 @@ class ChartInkClientTest {
                     visited.put(key, count + 1);
                     if (count == 0) {
                         newStocks.add(key);
+                        StockInfo info = symbolMap.get(key);
+                        if(info.isNearPivot()) {
+                            System.out.println("Stock " + key + " is near Pivot");
+                        }
                     }
                 }
             }
@@ -110,7 +113,8 @@ class ChartInkClientTest {
     }
 
     private static Map<String, StockInfo> loadSymbols(String filePrefix, LocalDate date) {
-        var daPath = Path.of(MarketSmithClientTest.BASE_PATH, filePrefix + " " + date + ".xlsx");
+        var fileName = filePrefix + " " + date + ".xlsx";
+        var daPath = MarketSmithClientTest.BASE_PATH.resolve(fileName);
         return new MarketSmithExcelPainter(daPath).readFile().stream()
                 .collect(Collectors.toMap(StockInfo::getSymbol, Function.identity()));
     }

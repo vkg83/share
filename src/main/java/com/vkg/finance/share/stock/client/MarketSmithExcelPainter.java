@@ -10,35 +10,49 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class MarketSmithExcelPainter {
     private static final Logger LOGGER = LoggerFactory.getLogger(MarketSmithExcelPainter.class);
     public static final Path TEMPLATE = Path.of("C:\\Users\\ADMIN\\Documents\\Weekly Analysis Template.xlsx");
-    public static final Path GROUP_FILE = Path.of("C:\\Users\\ADMIN\\Downloads\\industryGroupList.csv");
+    public static final Path DOWNLOAD_DIR = Path.of("C:\\Users\\ADMIN\\Downloads");
+    public static final String GROUP_FILE = "industryGroupList.csv";
+    public static final String INSIDE_PIVOT_FILE = "Filter_India_Stocks.csv";
+    public static final String REACHING_PIVOT_FILE = "Filter_India_Stocks (1).csv";
     public static final String FUNDAMENTALS_RANK = "Fundamentals Rank";
     public static final String FUNDAMENTALS = "Fundamentals";
     private final Path filePath;
     private CellStyle colorStyle;
-    private Map<String, Group> groupMap;
+    private final Map<String, Group> groupMap;
+    private final Set<String> pivots;
 
     public MarketSmithExcelPainter(Path filePath) {
         this.filePath = filePath;
-        loadGroups();
+        groupMap = new HashMap<>();
+        loadGroups(GROUP_FILE, line -> {
+            var g = new Group(line);
+            groupMap.put(g.getId(), g);
+        });
+        pivots = new HashSet<>();
+        loadGroups(INSIDE_PIVOT_FILE, line -> pivots.add(line[1]));
+        loadGroups(REACHING_PIVOT_FILE, line -> pivots.add(line[1]));
     }
 
-    private void loadGroups() {
-        groupMap = new HashMap<>();
-        try (var is = new FileReader(GROUP_FILE.toFile());
+    private void loadGroups(String file, Consumer<String[]> consumer) {
+        try (var is = getFileReader(file);
              var wb = new CSVReaderBuilder(is).withSkipLines(1).build()) {
             String[] line;
             while((line = wb.readNext()) != null) {
-                var group = new Group(line);
-                groupMap.put(group.getId(), group);
+                consumer.accept(line);
             }
         } catch (Exception ex) {
-            LOGGER.error("Not able to load groups", ex);
+            LOGGER.error("Not able to load from {}", file, ex);
         }
+    }
+
+    private static FileReader getFileReader(String fileName) throws FileNotFoundException {
+        return new FileReader(DOWNLOAD_DIR.resolve(fileName).toFile());
     }
 
     public void writeFile(List<StockInfo> list) {
@@ -132,6 +146,7 @@ public class MarketSmithExcelPainter {
         fillCell(row, ++colNum, info.getAverageWeeklyVolume());
         fillCell(row, ++colNum, info.getWeeklyVolume());
         fillCell(row, ++colNum, info.isInsideBar()? "Y" : "");
+        fillCell(row, ++colNum, pivots.contains(symbol)? "Y" : "");
     }
 
     private void addStyle(Cell cell) {
@@ -208,6 +223,10 @@ public class MarketSmithExcelPainter {
                 info.setAverageWeeklyVolume(NumberUtil.getBigDecimal(avgVolStr));
                 var volStr = fmt.formatCellValue(row.getCell(26));
                 info.setWeeklyVolume(NumberUtil.getBigDecimal(volStr));
+                var insideBar = fmt.formatCellValue(row.getCell(27));
+                info.setInsideBar("Y".equals(insideBar));
+                var nearPivot = fmt.formatCellValue(row.getCell(28));
+                info.setNearPivot("Y".equals(nearPivot));
                 stockInfos.add(info);
             }
         } catch (Exception ex) {

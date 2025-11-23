@@ -16,17 +16,29 @@ import java.util.List;
 
 class MarketSmithClientTest {
 
-    public static final String BASE_PATH = "C:\\Users\\ADMIN\\Documents\\Stock Analysis";
-    private static final Path GROUP_FILE = Path.of("C:\\Users\\ADMIN\\Downloads\\industryGroupList.csv");
+    public static final Path BASE_PATH = Path.of("C:\\Users\\ADMIN\\Documents\\Stock Analysis");
+    public static final Path DOWNLOAD_DIR = Path.of("C:\\Users\\ADMIN\\Downloads");
+    public static final String GROUP_FILE = "industryGroupList.csv";
+    public static final String INSIDE_PIVOT_FILE = "Filter_India_Stocks.csv";
+    public static final String REACHING_PIVOT_FILE = "Filter_India_Stocks (1).csv";
     private static List<String> insideBar;
+    private static LocalDate today;
 
     @BeforeAll
     static void checkGroupFileDate() throws IOException {
-        var time = Files.getLastModifiedTime(GROUP_FILE);
-        var fileDate = time.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        Assertions.assertEquals(LocalDate.now(), fileDate, "Group File is not up-to-date");
+        today = LocalDate.now();
+        verifyLatestFile(GROUP_FILE);
+        verifyLatestFile(INSIDE_PIVOT_FILE);
+        verifyLatestFile(REACHING_PIVOT_FILE);
         var chartInk = new ChartInkClient("inside-bar-611639");
         insideBar = chartInk.scrap().stream().map(ChartInkModel::getSymbol).toList();
+    }
+
+    private static void verifyLatestFile(String file) throws IOException {
+        var time = Files.getLastModifiedTime(DOWNLOAD_DIR.resolve(file));
+        var fileDate = time.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        Assertions.assertEquals(today, fileDate, "File is not up-to-date: " + file);
     }
 
     @ParameterizedTest
@@ -35,7 +47,8 @@ class MarketSmithClientTest {
         List<String> symbols = ZerodhaClient.getHoldings(userName);
         symbols = symbols.stream().filter(s -> !ZerodhaClient.etfs.contains(s)).toList();
         var infoList = getStockInfos(symbols);
-        var outputPath = Path.of(BASE_PATH, "Portfolio Analysis " + LocalDate.now() + " " + userName + ".xlsx");
+        var fileName = "Portfolio Analysis " + today + " " + userName + ".xlsx";
+        var outputPath = BASE_PATH.resolve(fileName);
         new MarketSmithExcelPainter(outputPath).writeFile(infoList);
     }
 
@@ -48,8 +61,8 @@ class MarketSmithClientTest {
         var chartInk = new ChartInkClient(scanName);
         var symbols = chartInk.scrap().stream().map(ChartInkModel::getSymbol).toList();
         List<StockInfo> info = getStockInfos(symbols);
-
-        var outputPath = Path.of(BASE_PATH, filePrefix + " " + LocalDate.now() + ".xlsx");
+        var fileName = filePrefix + " " + today + ".xlsx";
+        var outputPath = BASE_PATH.resolve(fileName);
         new MarketSmithExcelPainter(outputPath).writeFile(info);
     }
 
