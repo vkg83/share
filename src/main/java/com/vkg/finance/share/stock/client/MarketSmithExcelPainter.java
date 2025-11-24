@@ -219,13 +219,13 @@ public class MarketSmithExcelPainter {
                     continue;
                 }
                 var info = new StockInfo(fmt.formatCellValue(row.getCell(0), eval));
-                var avgVolStr = fmt.formatCellValue(row.getCell(25));
+                var avgVolStr = fmt.formatCellValue(row.getCell(26));
                 info.setAverageWeeklyVolume(NumberUtil.getBigDecimal(avgVolStr));
-                var volStr = fmt.formatCellValue(row.getCell(26));
+                var volStr = fmt.formatCellValue(row.getCell(27));
                 info.setWeeklyVolume(NumberUtil.getBigDecimal(volStr));
-                var insideBar = fmt.formatCellValue(row.getCell(27));
+                var insideBar = fmt.formatCellValue(row.getCell(28));
                 info.setInsideBar("Y".equals(insideBar));
-                var nearPivot = fmt.formatCellValue(row.getCell(28));
+                var nearPivot = fmt.formatCellValue(row.getCell(29));
                 info.setNearPivot("Y".equals(nearPivot));
                 stockInfos.add(info);
             }
