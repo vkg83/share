@@ -122,7 +122,7 @@ class ChartInkClientTest {
 
     private static Map<String, StockInfo> loadSymbols(String filePrefix) {
         LocalDate today = LocalDate.now();
-        var startDay = today.with(TemporalAdjusters.previous(DayOfWeek.MONDAY));
+        var startDay = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         System.out.printf("Loading from %s to %s%n", startDay, today);
         Map<String, StockInfo> symbols = new HashMap<>();
         while(!startDay.isAfter(today)) {
