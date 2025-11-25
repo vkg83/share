@@ -2,6 +2,8 @@ package com.vkg.finance.share.stock.client;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -64,6 +66,12 @@ class MarketSmithClientTest {
         var fileName = filePrefix + " " + today + ".xlsx";
         var outputPath = BASE_PATH.resolve(fileName);
         new MarketSmithExcelPainter(outputPath).writeFile(info);
+    }
+
+    @Disabled
+    @Test
+    void shouldPaintReversal() {
+        shouldPaintChartInkAnalysisData("copy-reversals-11", "Test Combine");
     }
 
     private static List<StockInfo> getStockInfos(List<String> symbols) {

@@ -124,13 +124,14 @@ class ChartInkClientTest {
         LocalDate today = LocalDate.now();
         var startDay = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         Map<String, StockInfo> symbols = new HashMap<>();
-        while(!startDay.isAfter(today)) {
+        var currentDate = startDay;
+        while(!currentDate.isAfter(today)) {
             try {
-                symbols.putAll(loadSymbols(filePrefix, startDay));
+                symbols.putAll(loadSymbols(filePrefix, currentDate));
             } catch (Exception ex) {
-                System.out.printf("Not loaded day %s. Reason: %s%n", startDay, ex.getMessage());
+                System.out.printf("Not loaded day %s. Reason: %s%n", currentDate, ex.getMessage());
             }
-            startDay = startDay.plusDays(1);
+            currentDate = currentDate.plusDays(1);
         }
         System.out.printf("Loaded %d symbols from %s to %s in %s: %s%n", symbols.size(), startDay, today, filePrefix, symbols.keySet());
         return symbols;
