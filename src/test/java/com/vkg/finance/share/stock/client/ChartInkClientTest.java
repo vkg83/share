@@ -7,6 +7,8 @@ import org.springframework.core.io.ClassPathResource;
 
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -84,6 +86,19 @@ class ChartInkClientTest {
             }
 
             Thread.sleep(300000);
+            awake();
+        }
+    }
+
+    private static void awake() {
+        try {
+            Robot robot = new Robot();
+            // Press and release Num Lock
+            robot.keyPress(KeyEvent.VK_NUM_LOCK);
+            robot.keyRelease(KeyEvent.VK_NUM_LOCK);
+            System.out.println("Num Lock key pressed.");
+        } catch (AWTException e) {
+            System.err.println("Error: Unable press num lock. Reason: " + e.getMessage());
         }
     }
 

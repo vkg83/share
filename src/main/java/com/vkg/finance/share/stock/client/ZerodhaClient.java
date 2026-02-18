@@ -35,7 +35,7 @@ public class ZerodhaClient {
     private static final By SUBMIT_BUTTON = By.xpath("/html/body/div[1]/div/div[2]/div[1]/div/div/div[2]/form/div[4]/button");
     public static final List<String> etfs = List.of("NIFTYBEES", "JUNIORBEES", "LIQUIDBEES");
     private static final Map<String, String> BSE_TO_NSE = Map.of("GVTD", "GVT&D");
-    public static final double STOP_LOSS_PERCENT = 0.92;
+    public static final double STOP_LOSS_PERCENT = -8;
 
     public KiteConnect login(String userName) {
         KiteConnect kiteSdk;
@@ -161,10 +161,10 @@ public class ZerodhaClient {
                 }
                 var gtt = gttMap.remove(symbol);
                 if (gtt != null) {
-                    compareHoldingWithGTT(symbol, h, gtt);
+                    compareHoldingWithGTT(symbol, h, gtt, k);
                 } else if(h.quantity > 0 || h.t1Quantity > 0) {
                     LOGGER.warn("*** Holding without GTT: {}", symbol);
-                    placeStopLoss(k, h);
+                    placeStopLoss(k, h, STOP_LOSS_PERCENT);
                 }
             }
             if(!gttMap.isEmpty()) {
@@ -180,7 +180,7 @@ public class ZerodhaClient {
         }
     }
 
-    private static void placeStopLoss(KiteConnect k, Holding h) throws IOException, KiteException {
+    private static GTT placeStopLoss(KiteConnect k, Holding h, double stopLossPercent) throws IOException, KiteException {
         GTTParams p = new GTTParams();
         p.triggerType = Constants.SINGLE;
         p.exchange = Constants.EXCHANGE_NSE;
@@ -192,25 +192,30 @@ public class ZerodhaClient {
         order1Params.product = Constants.PRODUCT_CNC;
         order1Params.transactionType = Constants.TRANSACTION_TYPE_SELL;
         order1Params.quantity = h.quantity + h.t1Quantity;
-        double stopLoss =  h.averagePrice * STOP_LOSS_PERCENT;
+        double stopLoss =  h.averagePrice * getStopLoss(stopLossPercent);
         var price = Math.ceil(stopLoss);
         order1Params.price = price;
 
         p.orders = List.of(order1Params);
         p.triggerPrices = List.of(price + 1);
 
-        k.placeGTT(p);
+        var gtt = k.placeGTT(p);
         LOGGER.info("Stop loss GTT order placed for {}", p.tradingsymbol);
+        return gtt;
     }
 
-    private static void compareHoldingWithGTT(String symbol, Holding h, GTT gtt) {
+    private static double getStopLoss(double stopLossPercent) {
+        return (100.0 + stopLossPercent) / 100;
+    }
+
+    private static void compareHoldingWithGTT(String symbol, Holding h, GTT gtt, KiteConnect k) throws IOException, KiteException {
         GTT.GTTOrder gttOrder = gtt.orders.getFirst();
 
         int quantity = h.quantity + h.t1Quantity;
         if(quantity != gttOrder.quantity) {
             LOGGER.error("{} - ### GTT order {} quantity mismatched {} holding quantity", symbol, gttOrder.quantity, quantity);
         }
-        double stopLoss =  h.averagePrice * STOP_LOSS_PERCENT;
+        double stopLoss =  h.averagePrice * getStopLoss(STOP_LOSS_PERCENT);
         if (stopLoss - gttOrder.price > 0.5) {
             LOGGER.error("{} - ### GTT stop loss {} is below ideal Stop loss {}", symbol, gttOrder.price, stopLoss);
         } else if (gtt.condition.triggerValues.getFirst() - gttOrder.price < 0.5) {
@@ -218,6 +223,12 @@ public class ZerodhaClient {
         } else {
             double actualStopLoss = (gttOrder.price - h.averagePrice) / h.averagePrice * 100;
             double profit = (h.lastPrice - h.averagePrice) / h.averagePrice * 100;
+            if(profit > 15 && actualStopLoss < -7) {
+                LOGGER.info("Shifting stop loss for {} from {} to break even", symbol, String.format("%6.2f%%", actualStopLoss));
+                k.cancelGTT(gtt.id);
+                gttOrder = placeStopLoss(k, h, 0).orders.getFirst();
+                actualStopLoss = (gttOrder.price - h.averagePrice) / h.averagePrice * 100;
+            }
             LOGGER.info("{}: {} - Stop loss {}", String.format("%-10s", symbol), String.format("%6.2f%%", profit), String.format("%6.2f%%", actualStopLoss));
         }
     }
