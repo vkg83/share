@@ -9,7 +9,7 @@ public class ChartInkModel {
 
     public ChartInkModel(String symbol, String price, String volume) {
         this.symbol = symbol;
-        this.price = new BigDecimal(price);
+        this.price = new BigDecimal(price.replaceAll(",",""));
         this.volume = Long.parseLong(volume.replaceAll(",", ""));
     }
 

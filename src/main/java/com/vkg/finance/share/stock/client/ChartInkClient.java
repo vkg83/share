@@ -21,7 +21,7 @@ public class ChartInkClient implements WebScrapper<List<ChartInkModel>> {
     private static final String CHARTINK_URL = "https://chartink.com/screener/";
     private static final By COPY_BUTTON = By.xpath("//div/span[text()='Copy']");
     private static final By TABLE_BUTTON = By.xpath("//div/span//span[text()='table']");
-    private static final By TABLE = By.xpath("//table/tbody/tr/td/span[text()='1']");
+    private static final By TABLE = By.xpath("//table/tbody/tr/td/div/span[normalize-space(text())='1']");
     private static final By COPY_MODAL = By.xpath("//span[text()='Table data copied successfully']");
 
     private final String scanName;
@@ -63,8 +63,7 @@ public class ChartInkClient implements WebScrapper<List<ChartInkModel>> {
         for (int i = 1; i < rows.length; i++) {
             var row = rows[i];
             String[] values = row.split("\t");
-            var model = new ChartInkModel(values[2], values[5],values[6]);
-
+            var model = new ChartInkModel(values[2], values[3], values[5]);
             list.add(model);
         }
         LOGGER.info("Found {} stocks in ChartInk Scan {}", list.size(), scanName);
