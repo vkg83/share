@@ -9,8 +9,8 @@ public class ChartInkModel {
 
     public ChartInkModel(String symbol, String price, String volume) {
         this.symbol = symbol;
-        this.price = new BigDecimal(price.replaceAll(",",""));
-        this.volume = Long.parseLong(volume.replaceAll(",", ""));
+        this.price = new BigDecimal(price.replace(",",""));
+        this.volume = Long.parseLong(volume.replace(",", ""));
     }
 
     public String getSymbol() {
